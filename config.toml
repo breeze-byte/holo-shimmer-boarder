@@ -45,7 +45,7 @@ fade = 2.4            # seconds to fade back to the theme colors
 # toward `low` they get more chroma and are pushed lighter/darker away from the
 # background, by up to `max_boost` (+40% chroma) and `lightness_push` lightness.
 enabled = true
-high = 0.60
-low = 0.30
+high = 0.80
+low = 0.50
 max_boost = 0.4
 lightness_push = 0.05
