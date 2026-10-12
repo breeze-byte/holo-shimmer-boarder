@@ -1,0 +1,39 @@
+# holo-border settings. After editing, run:  holo restart
+# Delete a line to fall back to its default.
+
+[border]
+size = 2          # border width in px (Omarchy's default is 2)
+alpha = 0.85      # border opacity, 1.0 = solid
+
+[colors]
+# Every theme color is clamped into this OKLCH band, so no theme can be harsher
+# than the others. Raise chroma_max for more vivid colors, lightness_min for paler.
+lightness_min = 0.84
+lightness_max = 0.92
+chroma_min = 0.075
+chroma_max = 0.13
+grey_chroma = 0.012   # near-grey theme colors stay neutral at this chroma
+contrast = 2.109375   # contrast boost applied before the clamp
+
+[drift]
+min_speed = 4.5       # degrees per second (magnitude)
+max_speed = 16.5
+leg_min = 1.0         # each leg (one direction) lasts this many seconds ...
+leg_max = 6.0         # ... up to this many, then it reverses
+ease = 2.5            # how quickly the speed follows its target (1/s)
+updates_per_second = 20   # smoother = more CPU
+
+[tilt]
+x = 55.0              # degrees the gradient shifts when the cursor is at the left/right edge
+y = 30.0              # ... and at the top/bottom edge
+ease = 6.0
+
+[settle]
+after = 3.0           # idle seconds (no focus change / mouse movement) before it slows down
+factor = 0.3333       # speed multiplier once settled
+ease = 0.8
+cursor_px = 6         # mouse movement beyond this counts as activity
+
+[flash]
+hold = 0.6            # seconds the complementary colors stay at full strength after selecting a window
+fade = 2.4            # seconds to fade back to the theme colors

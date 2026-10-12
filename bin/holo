@@ -1,0 +1,69 @@
+#!/bin/bash
+# Toggle the holo window border (gradient shimmer + drift + mouse tilt + flash).
+#   holo on | off | toggle | status | restart | refresh | start
+# State lives in ~/.local/state/holo; code and config in ~/.config/hypr/holo.
+
+DIR="$HOME/.config/hypr/holo"
+STATE="$HOME/.local/state/holo"
+FLAG="$STATE/enabled"
+PIDFILE="$STATE/drift.pid"
+OUT="$HOME/.config/hypr/holo-border.lua"
+
+mkdir -p "$STATE"
+
+enabled() { [[ -f $FLAG ]]; }
+running() { [[ -f $PIDFILE ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
+
+start_daemon() {
+  running && return
+  setsid python3 "$DIR/drift.py" >/dev/null 2>&1 &
+  echo $! >"$PIDFILE"
+}
+
+stop_daemon() {
+  running && kill "$(cat "$PIDFILE")" 2>/dev/null
+  rm -f "$PIDFILE"
+}
+
+# HOLO_NO_HYPRCTL=1 skips talking to Hyprland (used by the installer's tests).
+reload() { [[ -n $HOLO_NO_HYPRCTL ]] || hyprctl reload >/dev/null 2>&1; }
+notify() { [[ -n $HOLO_NO_HYPRCTL ]] || notify-send -u low "Holo border" "$1" 2>/dev/null; }
+
+case "${1:-toggle}" in
+  on)
+    touch "$FLAG"
+    python3 "$DIR/gen-holo-border.py" && reload
+    [[ -n $HOLO_NO_HYPRCTL ]] || start_daemon
+    notify "On"
+    ;;
+  off)
+    rm -f "$FLAG"
+    stop_daemon
+    echo "-- holo border is off (run: holo on)" >"$OUT"
+    reload
+    notify "Off"
+    ;;
+  toggle)
+    if enabled; then "$0" off; else "$0" on; fi
+    ;;
+  status)
+    if enabled; then echo "on (daemon: $(running && echo running || echo stopped))"; else echo off; fi
+    ;;
+  restart)   # after editing config.toml
+    if enabled; then
+      stop_daemon
+      python3 "$DIR/gen-holo-border.py" && reload
+      start_daemon
+    fi
+    ;;
+  refresh)   # after a theme change: regenerate the colors if enabled
+    enabled && python3 "$DIR/gen-holo-border.py" && reload
+    ;;
+  start)     # at login: make sure the daemon runs if enabled
+    enabled && start_daemon
+    ;;
+  *)
+    echo "usage: holo on|off|toggle|status|restart|refresh|start" >&2
+    exit 1
+    ;;
+esac
