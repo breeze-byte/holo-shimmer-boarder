@@ -45,7 +45,7 @@ chmod +x "$LIB/gen-holo-border.py" "$LIB/drift.py"
 [[ -f $LIB/config.toml ]] || cp "$HERE/config.toml" "$LIB/config.toml"
 cp "$HERE/bin/holo" "$BIN/holo"; chmod +x "$BIN/holo"
 cp "$HERE/hooks/holo-border.sh" "$HOOKS/holo-border.sh"
-[[ -f $HYPR/holo-border.lua ]] || echo "-- holo border is off (run: holo on)" >"$HYPR/holo-border.lua"
+[[ -f $HYPR/holo-border.lua ]] || echo "-- holo border is off (run: holo on)" >"$HYPR/holo-border.lua"  # replaced by "holo on" below
 
 # --- wiring: append a marked block to a Hyprland config file, once ---
 add_block() {  # file, content

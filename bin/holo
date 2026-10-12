@@ -39,7 +39,9 @@ case "${1:-toggle}" in
   off)
     rm -f "$FLAG"
     stop_daemon
-    echo "-- holo border is off (run: holo on)" >"$OUT"
+    # Off still keeps the configured border width; only the gradient/animation go away.
+    size=$(python3 -c "import sys; sys.path.insert(0, '$DIR'); import holo_config; print(holo_config.load()['border']['size'])" 2>/dev/null || echo 2)
+    printf -- '-- holo border is off (run: holo on); keeps the configured width\nhl.config({ general = { border_size = %s } })\n' "$size" >"$OUT"
     reload
     notify "Off"
     ;;
