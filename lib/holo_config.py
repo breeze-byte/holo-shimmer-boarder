@@ -4,7 +4,7 @@ import copy, os, tomllib
 PATH = os.environ.get("HOLO_CONFIG") or os.path.expanduser("~/.config/hypr/holo/config.toml")
 
 DEFAULTS = {
-    "border": {"size": 2, "alpha": 0.85},
+    "border": {"size": 3, "alpha": 0.85},
     "colors": {
         "lightness_min": 0.84, "lightness_max": 0.92,
         "chroma_min": 0.075, "chroma_max": 0.13,

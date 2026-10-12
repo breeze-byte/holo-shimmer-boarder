@@ -2,7 +2,7 @@
 # Delete a line to fall back to its default.
 
 [border]
-size = 2          # border width in px (Omarchy's default is 2)
+size = 3          # border width in px (Omarchy's default is 2)
 alpha = 0.85      # border opacity, 1.0 = solid
 
 [colors]
