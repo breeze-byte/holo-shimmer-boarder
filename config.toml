@@ -3,7 +3,7 @@
 
 [border]
 size = 3          # border width in px (Omarchy's default is 2)
-alpha = 0.85      # border opacity, 1.0 = solid
+alpha = 1.0       # border opacity, 1.0 = solid
 
 [colors]
 # Every theme color is clamped into this OKLCH band, so no theme can be harsher
@@ -27,6 +27,7 @@ updates_per_second = 20   # smoother = more CPU
 x = 55.0              # degrees the gradient shifts when the cursor is at the left/right edge
 y = 30.0              # ... and at the top/bottom edge
 ease = 6.0
+max_rate = 30.0       # fastest the tilt may turn, degrees per second (keeps window switches calm)
 
 [settle]
 after = 3.0           # idle seconds (no focus change / mouse movement) before it slows down

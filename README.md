@@ -73,6 +73,7 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 | `drift.leg_min` / `leg_max` | seconds before it reverses direction |
 | `drift.updates_per_second` | smoothness vs. CPU |
 | `tilt.x` / `tilt.y` | how far the cursor tilts the gradient |
+| `tilt.max_rate` | fastest the tilt can turn (deg/s) |
 | `settle.after` / `settle.factor` | when and how much it slows down |
 | `flash.hold` / `flash.fade` | how long the complementary colors last |
 
