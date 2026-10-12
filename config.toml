@@ -37,3 +37,15 @@ cursor_px = 6         # mouse movement beyond this counts as activity
 [flash]
 hold = 0.6            # seconds the complementary colors stay at full strength after selecting a window
 fade = 2.4            # seconds to fade back to the theme colors
+
+[adaptive]
+# Scales the border's color contrast by how much the theme's background contrasts
+# with it. Contrast = lightness difference between the theme background and the
+# border colors (0-1). At or above `high` the colors are left exactly as they are;
+# toward `low` they get more chroma and are pushed lighter/darker away from the
+# background, by up to `max_boost` (+40% chroma) and `lightness_push` lightness.
+enabled = true
+high = 0.60
+low = 0.30
+max_boost = 0.4
+lightness_push = 0.05

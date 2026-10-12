@@ -25,6 +25,7 @@ CONTRAST = cfg["colors"]["contrast"]
 L_MIN, L_MAX = cfg["colors"]["lightness_min"], cfg["colors"]["lightness_max"]
 C_MIN, C_MAX = cfg["colors"]["chroma_min"], cfg["colors"]["chroma_max"]
 GREY_CHROMA = cfg["colors"]["grey_chroma"]
+AD = cfg["adaptive"]
 
 with open(theme, "rb") as f:
     c = tomllib.load(f)
@@ -81,18 +82,42 @@ def style(h):
     v = [x * 1.25 for x in v]                       # brighter
     return limit([max(0, min(255, round(273 + (x - 273) * CONTRAST))) for x in v])
 
+def bg_contrast(styled):
+    """Lightness difference between the theme background and the border colors."""
+    bg = rgb(c.get("background", "#000000"))
+    border_l = sum(rgb_to_oklch(v)[0] for v in styled) / len(styled)
+    return abs(border_l - rgb_to_oklch(bg)[0]), rgb_to_oklch(bg)[0]
+
 def hexa(v):
     return "rgba(%02x%02x%02x%02x)" % (*v, round(ALPHA * 255))
+
+base_colors = [style(get(k)) for k in ("blue", "cyan", "magenta", "yellow", "bright_blue")]
+contrast_to_bg, bg_l = bg_contrast(base_colors)
+# 0 = background contrast is high (colors untouched) ... 1 = background is muted.
+muted = 0.0
+if AD["enabled"]:
+    muted = max(0.0, min(1.0, (AD["high"] - contrast_to_bg) / (AD["high"] - AD["low"])))
+
+def adapt(v):
+    """On a muted background: more chroma, and lightness pushed away from the background."""
+    if muted == 0.0:
+        return v
+    L, C, H = rgb_to_oklch(v)
+    if C >= 0.03:                       # near-greys stay neutral
+        C *= 1 + AD["max_boost"] * muted
+    L += (-1 if bg_l > 0.5 else 1) * AD["lightness_push"] * muted
+    return oklch_to_rgb(max(0.0, min(1.0, L)), C, H)
 
 white = [255, 255, 255] if not light else [150, 156, 166]
 silver = [251, 255, 255] if not light else [120, 126, 138]
 
+blue, cyan, magenta, yellow, bright_blue = [adapt(v) for v in base_colors]
 stops = [
-    (white, "white"), (style(get("blue")), "blue"), (white, "white"),
-    (style(get("cyan")), "cyan"), (white, "white"), (silver, "silver"),
-    (style(get("magenta")), "magenta"), (white, "white"),
-    (style(get("yellow")), "yellow"), (white, "white"), (silver, "silver"),
-    (style(get("bright_blue")), "bright_blue"), (white, "white"),
+    (white, "white"), (blue, "blue"), (white, "white"),
+    (cyan, "cyan"), (white, "white"), (silver, "silver"),
+    (magenta, "magenta"), (white, "white"),
+    (yellow, "yellow"), (white, "white"), (silver, "silver"),
+    (bright_blue, "bright_blue"), (white, "white"),
 ]
 
 def complement(v):

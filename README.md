@@ -12,6 +12,9 @@ like the shimmer on a holo trading card.
   yellow and bright blue. It regenerates automatically when you switch themes.
 - **Same contrast on every theme.** Colors are clamped into a fixed OKLCH lightness/chroma band, so a
   loud theme can't produce a harsh border.
+- **Adapts to the background.** If a theme's background is muted (low contrast with the border), the
+  colors get more chroma and move lighter/darker away from the background. High-contrast themes are
+  left exactly as they are, and the boost scales smoothly in between.
 - **Drift.** The gradient angle wanders smoothly and reverses direction every few seconds.
 - **Tilt.** Where your cursor sits inside the focused window shifts the gradient, like tilting a card.
 - **Settle.** After a few idle seconds the drift slows to a third of its speed.
@@ -62,6 +65,7 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 | `border.size`, `border.alpha` | width in px, opacity |
 | `colors.chroma_max` / `chroma_min` | how vivid the colors can be |
 | `colors.lightness_min` / `lightness_max` | how pale or deep the colors can be |
+| `adaptive.high` / `low` / `max_boost` | the background-contrast range and how strong the boost gets |
 | `drift.min_speed` / `max_speed` | degrees per second |
 | `drift.leg_min` / `leg_max` | seconds before it reverses direction |
 | `drift.updates_per_second` | smoothness vs. CPU |
