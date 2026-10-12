@@ -12,9 +12,11 @@ like the shimmer on a holo trading card.
   yellow and bright blue. It regenerates automatically when you switch themes.
 - **Same contrast on every theme.** Colors are clamped into a fixed OKLCH lightness/chroma band, so a
   loud theme can't produce a harsh border.
-- **Adapts to the background.** If a theme's background is muted (low contrast with the border), the
-  colors get more chroma and move lighter/darker away from the background. High-contrast themes are
-  left exactly as they are, and the boost scales smoothly in between.
+- **Adapts to what is behind it.** The generator samples the wallpaper's dominant color and measures how
+  far each border color is from it. Colors that sit close to it (low contrast) get more chroma and move
+  lighter or darker away from it; colors far from it are left exactly as they are, with a smooth scale
+  in between. If the wallpaper changes, the daemon re-samples it. (Needs ImageMagick; without it the
+  theme background color is used.)
 - **Drift.** The gradient angle wanders smoothly and reverses direction every few seconds.
 - **Tilt.** Where your cursor sits inside the focused window shifts the gradient, like tilting a card.
 - **Settle.** After a few idle seconds the drift slows to a third of its speed.
@@ -25,6 +27,7 @@ like the shimmer on a holo trading card.
 
 - Omarchy with the **Lua Hyprland config** (`~/.config/hypr/{hyprland,looknfeel,autostart,bindings}.lua`)
 - Python 3.11+ (uses `tomllib`)
+- ImageMagick (`magick`) to sample the wallpaper (optional; falls back to the theme background)
 - Hyprland 0.56 or newer (developed on 0.56.2)
 
 Tested on dark themes (Kanagawa, Matte Black). Light themes are supported, but I haven't looked at
@@ -65,7 +68,7 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 | `border.size`, `border.alpha` | width in px, opacity |
 | `colors.chroma_max` / `chroma_min` | how vivid the colors can be |
 | `colors.lightness_min` / `lightness_max` | how pale or deep the colors can be |
-| `adaptive.high` / `low` / `max_boost` | the background-contrast range and how strong the boost gets |
+| `adaptive.source`, `high` / `low`, `max_boost`, `lightness_push` | what to compare against (`wallpaper` or `theme`), the distance range, and how strong the boost is |
 | `drift.min_speed` / `max_speed` | degrees per second |
 | `drift.leg_min` / `leg_max` | seconds before it reverses direction |
 | `drift.updates_per_second` | smoothness vs. CPU |

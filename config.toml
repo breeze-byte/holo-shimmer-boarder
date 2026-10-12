@@ -39,13 +39,15 @@ hold = 0.6            # seconds the complementary colors stay at full strength a
 fade = 2.4            # seconds to fade back to the theme colors
 
 [adaptive]
-# Scales the border's color contrast by how much the theme's background contrasts
-# with it. Contrast = lightness difference between the theme background and the
-# border colors (0-1). At or above `high` the colors are left exactly as they are;
-# toward `low` they get more chroma and are pushed lighter/darker away from the
-# background, by up to `max_boost` (+40% chroma) and `lightness_push` lightness.
+# Adapts each border color to what is behind it. The "dominant color" is sampled from
+# the wallpaper (source = "wallpaper") or taken from the theme background
+# (source = "theme"). Each border color's distance from it (OKLab, ~0-1) sets how
+# much that color is boosted: at or above `high` it is left exactly as it is; toward
+# `low` it gets more chroma (up to +max_boost) and is pushed lighter/darker away
+# from the dominant color (up to `lightness_push` lightness).
 enabled = true
-high = 0.80
-low = 0.50
+source = "wallpaper"
+high = 0.60
+low = 0.25
 max_boost = 0.4
-lightness_push = 0.05
+lightness_push = 0.15

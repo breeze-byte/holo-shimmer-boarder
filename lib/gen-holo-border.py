@@ -10,7 +10,7 @@ cyan, magenta, yellow and bright_blue, alternating with white/silver glints,
 then clamped into a fixed OKLCH lightness/chroma band so every theme has the
 same contrast. Light themes use the theme colors as-is with grey glints.
 """
-import json, math, os, tomllib
+import json, math, os, re, subprocess, tomllib
 
 import holo_config
 
@@ -82,31 +82,52 @@ def style(h):
     v = [x * 1.25 for x in v]                       # brighter
     return limit([max(0, min(255, round(273 + (x - 273) * CONTRAST))) for x in v])
 
-def bg_contrast(styled):
-    """Lightness difference between the theme background and the border colors."""
-    bg = rgb(c.get("background", "#000000"))
-    border_l = sum(rgb_to_oklch(v)[0] for v in styled) / len(styled)
-    return abs(border_l - rgb_to_oklch(bg)[0]), rgb_to_oklch(bg)[0]
+def dominant_color():
+    """Most common color of the wallpaper (falls back to the theme background)."""
+    if AD["source"] == "wallpaper":
+        wall = os.path.realpath(os.path.expanduser("~/.local/state/omarchy/current/background"))
+        try:
+            text = subprocess.run(
+                ["magick", wall, "-resize", "96x96!", "-colors", "8", "-depth", "8",
+                 "-format", "%c", "histogram:info:-"],
+                capture_output=True, text=True, timeout=10).stdout
+            found = [(int(m.group(1)), [int(m.group(i)) for i in (2, 3, 4)])
+                     for m in re.finditer(r"(\d+):\s*\(\s*(\d+),\s*(\d+),\s*(\d+)", text)]
+            if found:
+                return max(found)[1]
+        except (OSError, subprocess.SubprocessError):
+            pass
+    return rgb(c.get("background", "#000000"))
+
+def lab(v):
+    L, C, H = rgb_to_oklch(v)
+    return L, C * math.cos(math.radians(H)), C * math.sin(math.radians(H))
 
 def hexa(v):
     return "rgba(%02x%02x%02x%02x)" % (*v, round(ALPHA * 255))
 
-base_colors = [style(get(k)) for k in ("blue", "cyan", "magenta", "yellow", "bright_blue")]
-contrast_to_bg, bg_l = bg_contrast(base_colors)
-# 0 = background contrast is high (colors untouched) ... 1 = background is muted.
-muted = 0.0
-if AD["enabled"]:
-    muted = max(0.0, min(1.0, (AD["high"] - contrast_to_bg) / (AD["high"] - AD["low"])))
+dominant = dominant_color()
+dom_lab = lab(dominant)
 
 def adapt(v):
-    """On a muted background: more chroma, and lightness pushed away from the background."""
-    if muted == 0.0:
+    """Boost one color by how close it is to the dominant color behind the border.
+
+    Far from it (>= high): untouched. Close (<= low): more chroma, and lightness
+    pushed away from the dominant color's lightness.
+    """
+    if not AD["enabled"]:
+        return v
+    dist = math.dist(lab(v), dom_lab)
+    m = max(0.0, min(1.0, (AD["high"] - dist) / (AD["high"] - AD["low"])))
+    if m == 0.0:
         return v
     L, C, H = rgb_to_oklch(v)
     if C >= 0.03:                       # near-greys stay neutral
-        C *= 1 + AD["max_boost"] * muted
-    L += (-1 if bg_l > 0.5 else 1) * AD["lightness_push"] * muted
+        C *= 1 + AD["max_boost"] * m
+    L += (-1 if dom_lab[0] > 0.5 else 1) * AD["lightness_push"] * m
     return oklch_to_rgb(max(0.0, min(1.0, L)), C, H)
+
+base_colors = [style(get(k)) for k in ("blue", "cyan", "magenta", "yellow", "bright_blue")]
 
 white = [255, 255, 255] if not light else [150, 156, 166]
 silver = [251, 255, 255] if not light else [120, 126, 138]

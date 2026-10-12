@@ -18,7 +18,7 @@ DEFAULTS = {
     "tilt": {"x": 55.0, "y": 30.0, "ease": 6.0},
     "settle": {"after": 3.0, "factor": 1 / 3, "ease": 0.8, "cursor_px": 6},
     "flash": {"hold": 0.6, "fade": 2.4},
-    "adaptive": {"enabled": True, "high": 0.80, "low": 0.50, "max_boost": 0.4, "lightness_push": 0.05},
+    "adaptive": {"enabled": True, "source": "wallpaper", "high": 0.60, "low": 0.25, "max_boost": 0.4, "lightness_push": 0.15},
 }
 
 def load():

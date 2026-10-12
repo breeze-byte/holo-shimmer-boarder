@@ -14,7 +14,7 @@ daemon turns the gradient angle itself over Hyprland's command socket:
 Colors come from colors.json (written by gen-holo-border.py) and are reloaded
 whenever that file changes, e.g. after a theme switch.
 """
-import json, os, random, socket, time
+import json, os, random, socket, subprocess, sys, time
 
 import holo_config
 
@@ -30,6 +30,9 @@ FLASH_HOLD, FLASH_FADE = cfg["flash"]["hold"], cfg["flash"]["fade"]
 WINDOW_EVERY = 0.25   # seconds between active-window geometry lookups
 
 COLORS = os.path.expanduser("~/.local/state/holo/colors.json")
+WALLPAPER = os.path.expanduser("~/.local/state/omarchy/current/background")
+GENERATOR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gen-holo-border.py")
+WALLPAPER_EVERY = 3.0   # seconds between wallpaper-change checks
 SOCK = f"{os.environ['XDG_RUNTIME_DIR']}/hypr/{os.environ['HYPRLAND_INSTANCE_SIGNATURE']}/.socket.sock"
 
 def parse(c):
@@ -73,9 +76,17 @@ def cursor_offset(win, cur):
         return None
     return nx, ny
 
+def wallpaper_stamp():
+    try:
+        real = os.path.realpath(WALLPAPER)
+        return real, os.path.getmtime(real)
+    except OSError:
+        return None
+
 def main():
     (normal, comp), mtime = load_colors(), os.path.getmtime(COLORS)
     flash_at = -1e9
+    wall, wall_at = wallpaper_stamp(), 0.0
     angle = random.uniform(0, 360)
     direction = 1
     speed = target = (MIN_SPEED + MAX_SPEED) / 2
@@ -99,6 +110,12 @@ def main():
         speed += (target - speed) * min(1.0, EASE * dt)
         angle = (angle + speed * factor * dt) % 360
         try:
+            if cfg["adaptive"]["enabled"] and cfg["adaptive"]["source"] == "wallpaper" and now >= wall_at:
+                wall_at = now + WALLPAPER_EVERY
+                stamp = wallpaper_stamp()
+                if stamp != wall:                  # new wallpaper: re-sample its dominant color
+                    wall = stamp
+                    subprocess.run([sys.executable, GENERATOR], timeout=30)
             if now >= win_at:
                 aw = json.loads(send("j/activewindow") or "{}")
                 win = (aw["at"], aw["size"]) if aw.get("at") else None
