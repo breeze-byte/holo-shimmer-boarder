@@ -10,7 +10,7 @@ cyan, magenta, yellow and bright_blue, alternating with white/silver glints,
 then clamped into a fixed OKLCH lightness/chroma band so every theme has the
 same contrast. Light themes use the theme colors as-is with grey glints.
 """
-import json, math, os, re, subprocess, tomllib
+import colorsys, json, math, os, re, subprocess, tomllib
 
 import holo_config
 
@@ -111,6 +111,35 @@ def hexa(v):
 dominant = dominant_color()
 dom_lab = lab(dominant)
 
+TR = cfg["transparency"]
+
+def wallpaper_pixels():
+    """A 32x32 sample of the wallpaper as [r, g, b] rows; the theme background if unavailable."""
+    if AD["source"] == "wallpaper":
+        wall = os.path.realpath(os.path.expanduser("~/.local/state/omarchy/current/background"))
+        try:
+            text = subprocess.run(["magick", wall, "-resize", "32x32!", "-depth", "8", "txt:-"],
+                                  capture_output=True, text=True, timeout=10).stdout
+            px = [[int(x) for x in m.groups()] for m in re.finditer(r"\((\d+),(\d+),(\d+)", text)]
+            if px:
+                return px
+        except (OSError, subprocess.SubprocessError):
+            pass
+    return [rgb(c.get("background", "#000000"))]
+
+WALL = wallpaper_pixels()
+WALL_L = sum(rgb_to_oklch(p)[0] for p in WALL) / len(WALL)
+
+def wallpaper_brightness():
+    """Brightness score 0..1: mean OKLCH lightness of the wallpaper, scaled between
+    TR dark_l (score 0) and TR bright_l (score 1)."""
+    return max(0.0, min(1.0, (WALL_L - TR["dark_l"]) / (TR["bright_l"] - TR["dark_l"])))
+
+BRIGHTNESS = wallpaper_brightness()
+if TR["enabled"]:
+    # Brighter backdrop -> more opaque border so the pale colors don't wash out.
+    ALPHA = min(1.0, TR["min_alpha"] + (TR["max_alpha"] - TR["min_alpha"]) * BRIGHTNESS)
+
 def adapt(v):
     """Boost one color by how close it is to the dominant color behind the border.
 
@@ -135,6 +164,57 @@ white = [255, 255, 255] if not light else [150, 156, 166]
 silver = [251, 255, 255] if not light else [120, 126, 138]
 
 blue, cyan, magenta, yellow, bright_blue = [adapt(v) for v in base_colors]
+
+LG = cfg["legibility"]
+
+def luminance(v):
+    return 0.2126 * to_lin(v[0]) + 0.7152 * to_lin(v[1]) + 0.0722 * to_lin(v[2])
+
+def contrast_score(colors):
+    """Mean WCAG contrast ratio (1 = none, 21 = black on white) between the border colors,
+    drawn at the current opacity, and the wallpaper pixels behind them."""
+    total = 0.0
+    for v in colors:
+        for p in WALL:
+            top = luminance([x * ALPHA + y * (1 - ALPHA) for x, y in zip(v, p)])
+            bot = luminance(p)
+            total += (max(top, bot) + 0.05) / (min(top, bot) + 0.05)
+    return total / (len(colors) * len(WALL))
+
+def legible(colors):
+    """Move the colored stops away from the wallpaper's lightness until their mean contrast
+    reaches the target (or max_shift is used up)."""
+    if not LG["enabled"]:
+        return colors
+    step = -0.02 if WALL_L > 0.5 else 0.02          # darker on a bright wallpaper, else lighter
+    target = LG["target_dark"] + (LG["target_bright"] - LG["target_dark"]) * BRIGHTNESS
+    out, shift = colors, 0.0
+    while contrast_score(out) < target and abs(shift) < LG["max_shift"]:
+        shift += step
+        out = []
+        for v in colors:
+            L, C, H = rgb_to_oklch(v)
+            out.append(oklch_to_rgb(max(0.0, min(1.0, L + shift)), C, H))
+    return out
+
+COLOR_NAMES = ("blue", "cyan", "magenta", "yellow", "bright_blue")
+contrast_target = LG["target_dark"] + (LG["target_bright"] - LG["target_dark"]) * BRIGHTNESS
+contrast_before = contrast_score([blue, cyan, magenta, yellow, bright_blue])
+blue, cyan, magenta, yellow, bright_blue = legible([blue, cyan, magenta, yellow, bright_blue])
+
+def vivid_up(colors):
+    """More chroma on bright wallpapers (none on dark ones), so the darker colors the contrast
+    step needs still look rich instead of muddy. Stays inside the sRGB gamut."""
+    boost = 1 + cfg["vividness"]["max_boost"] * BRIGHTNESS if cfg["vividness"]["enabled"] else 1
+    out = []
+    for v in colors:
+        L, C, H = rgb_to_oklch(v)
+        out.append(oklch_to_rgb(L, C * boost, H))
+    return out
+
+blue, cyan, magenta, yellow, bright_blue = vivid_up([blue, cyan, magenta, yellow, bright_blue])
+final = dict(zip(COLOR_NAMES, [blue, cyan, magenta, yellow, bright_blue]))   # what is drawn; opposites derive from these
+contrast_after = contrast_score([blue, cyan, magenta, yellow, bright_blue])
 stops = [
     (white, "white"), (blue, "blue"), (white, "white"),
     (cyan, "cyan"), (white, "white"), (silver, "silver"),
@@ -144,15 +224,19 @@ stops = [
 ]
 
 def complement(v):
-    """Hue + 180 degrees at the same lightness/chroma."""
-    L, C, H = rgb_to_oklch(v)
-    return oklch_to_rgb(L, C, (H + 180) % 360)
+    """The color directly across the color wheel (hue + 180 degrees), made vivid: the opposite
+    only reads as an opposite if it is bright and saturated, whatever the original's lightness."""
+    h, s, val = colorsys.rgb_to_hsv(*[x / 255 for x in v])
+    r, g, b = colorsys.hsv_to_rgb((h + 0.5) % 1.0, max(s, 0.85), max(val, 0.95))
+    return [round(r * 255), round(g * 255), round(b * 255)]
 
 os.makedirs(os.path.dirname(colors_json), exist_ok=True)
 with open(colors_json, "w") as f:
     json.dump({
         "normal": [hexa(v) for v, n in stops],
-        "complement": [hexa(v if n in ("white", "silver") else complement(v)) for v, n in stops],
+        "complement": [hexa(v if n in ("white", "silver") else complement(final[n])) for v, n in stops],
+        "brightness": round(BRIGHTNESS, 3), "alpha": round(ALPHA, 3),
+        "names": [n for v, n in stops], "contrast_before": round(contrast_before, 2), "contrast_target": round(contrast_target, 2), "contrast": round(contrast_after, 2),
     }, f)
 
 lines = "\n".join('      "%s", -- %s' % (hexa(v), n) for v, n in stops)

@@ -8,20 +8,23 @@ like the shimmer on a holo trading card.
 
 ## What it does
 
-- **Theme colors.** The gradient is built from your current Omarchy theme's blue, cyan, magenta,
-  yellow and bright blue. It regenerates automatically when you switch themes.
-- **Same contrast on every theme.** Colors are clamped into a fixed OKLCH lightness/chroma band, so a
-  loud theme can't produce a harsh border.
-- **Adapts to what is behind it.** The generator samples the wallpaper's dominant color and measures how
-  far each border color is from it. Colors that sit close to it (low contrast) get more chroma and move
-  lighter or darker away from it; colors far from it are left exactly as they are, with a smooth scale
-  in between. If the wallpaper changes, the daemon re-samples it. (Needs ImageMagick; without it the
-  theme background color is used.)
-- **Drift.** The gradient angle wanders smoothly and reverses direction every few seconds.
+- **Theme colors.** The gradient is built from three of your current Omarchy theme's blue, cyan, magenta,
+  yellow and bright blue, picked and ordered at random on every window switch, with a silver between each
+  and white at both ends. It regenerates automatically when you switch themes.
+- **Wallpaper brightness.** The generator scores how bright the wallpaper is (mean perceived lightness,
+  0 = dark, 1 = bright). That score sets the border opacity (75% on a dark wallpaper up to 100% on a bright
+  one), how hard the colors are pushed away from the wallpaper's lightness (contrast target 2.0 up to 4.0),
+  and how much extra chroma they get (up to +80%). Dark themes stay soft; bright ones get a stronger border.
+- **Same look on every theme.** Unless `colors.raw` is on, colors are made pastel and clamped into a fixed
+  OKLCH lightness/chroma band, so a loud theme can't produce a harsh border.
+- **Adapts to what is behind it.** Colors close to the wallpaper's dominant color get more chroma and move
+  lighter or darker away from it. If the wallpaper changes, the daemon re-samples it. (Needs ImageMagick;
+  without it the theme background color is used.)
+- **Drift.** The gradient angle wanders very slowly and reverses direction every few seconds.
 - **Settle.** After a few idle seconds the drift slows to a third of its speed.
 - **Fade in.** Selecting a window fades its border from the inactive grey to the gradient.
-- **Sweep.** Selecting a window also turns the gradient a set angle counter-clockwise, easing out into the drift.
-- **Opposites.** The silver stops start as the opposite of the nearest theme color and fade back to silver.
+- **Opposites.** The silver stops start as the color directly across the color wheel from the color before them
+  and fade back to silver.
 - **Shadow.** The focused window gets a faint shadow tinted from the gradient, fading in with the border.
 - **On/off toggle.** One command or keybind; off restores Omarchy's normal border.
 
@@ -67,18 +70,22 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 
 | Setting | Effect |
 |---|---|
-| `border.size`, `border.alpha` | width in px, opacity |
+| `border.size`, `border.alpha` | width in px, opacity (used when `transparency.enabled` is off) |
 | `colors.chroma_max` / `chroma_min` | how vivid the colors can be |
 | `colors.lightness_min` / `lightness_max` | how pale or deep the colors can be |
 | `adaptive.source`, `high` / `low`, `max_boost`, `lightness_push` | what to compare against (`wallpaper` or `theme`), the distance range, and how strong the boost is |
 | `drift.min_speed` / `max_speed` | degrees per second |
 | `drift.leg_min` / `leg_max` | seconds before it reverses direction |
-| `drift.updates_per_second` | smoothness vs. CPU |
+| `drift.updates_per_second` | smoothness vs. CPU (60 matches a 60 Hz screen) |
 | `settle.after` / `settle.factor` | when and how much it slows down |
 | `fade_in.duration` | seconds for the grey-to-gradient fade |
-| `sweep.degrees` / `duration` / `clockwise_sign` | the turn on selecting a window |
-| `opposites.stops` / `fade` | which stops flash their opposite, and how long it takes to fade back |
+| `bands.colors` | how many theme colors are in the gradient (of 5) |
+| `opposites.fade` | seconds for the silvers to fade back from their opposite color |
 | `shadow.range` / `alpha` / `render_power` | size, opacity and softness of the focused-window shadow |
+| `transparency.min_alpha` / `max_alpha` | border opacity on a dark and a bright wallpaper |
+| `transparency.dark_l` / `bright_l` | wallpaper lightness that scores 0 and 1 |
+| `legibility.target_dark` / `target_bright` | contrast the colors must reach against a dark / bright wallpaper |
+| `vividness.max_boost` | extra chroma on a bright wallpaper |
 | `colors.raw` | use the theme's exact colors, with no pastel, clamp or wallpaper adjust |
 
 ## How it works

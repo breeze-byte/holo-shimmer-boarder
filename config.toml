@@ -3,7 +3,7 @@
 
 [border]
 size = 3          # border width in px (Omarchy's default is 2)
-alpha = 0.6       # border opacity, 1.0 = solid
+alpha = 0.9       # border opacity, 1.0 = solid
 
 [colors]
 raw = true            # test: use the theme's exact colors (no pastel, clamp or wallpaper adjust)
@@ -17,8 +17,8 @@ grey_chroma = 0.012   # near-grey theme colors stay neutral at this chroma
 contrast = 2.109375   # contrast boost applied before the clamp
 
 [drift]
-min_speed = 2.25
-max_speed = 8.25
+min_speed = 0.2 
+max_speed = 0.6 
 leg_min = 1.0         # each leg (one direction) lasts this many seconds ...
 leg_max = 6.0         # ... up to this many, then it reverses
 ease = 2.5            # how quickly the speed follows its target (1/s)
@@ -48,11 +48,6 @@ lightness_push = 0.15
 [fade_in]
 duration = 0.35       # seconds to go from the grey inactive border to the holo gradient
 
-[sweep]
-degrees = 45.0        # gradient turns this far on a window switch (always counter-clockwise)
-duration = 3.6
-clockwise_sign = -1   # -1 = counter-clockwise, 1 = clockwise (same for left and right)
-
 [shadow]
 enabled = true        # focused window only: fades in with the border and stays
 range = 5             # size/softness in px
@@ -60,5 +55,31 @@ render_power = 3      # falloff: higher = softer edge
 alpha = 0.1           # shadow opacity once faded in
 
 [opposites]
-stops = [5, 10]            # stops (0-based, in the order of holo-border.lua) that flash the opposite; 5 and 10 are the silvers
-fade = 5.0                 # seconds for them to fade back to their normal color after a window is selected
+fade = 3.0                 # seconds for them to fade back to their normal color after a window is selected
+
+[transparency]
+# Scores how bright the wallpaper is (0 = dark, 1 = bright) and sets the border opacity from it,
+# overriding border.alpha. Brighter wallpaper = more opaque border so pale colors stay visible.
+enabled = true
+min_alpha = 0.75      # border opacity on a dark wallpaper
+max_alpha = 1.0       # border opacity on a bright wallpaper
+dark_l = 0.2          # wallpaper lightness (OKLCH L) that scores 0
+bright_l = 0.8        # ... and 1
+
+[legibility]
+# Scores the border's contrast against the wallpaper (1 = none, 21 = black on white). If the
+# colored stops average below the target, their lightness is moved away from the wallpaper's
+# (darker on a bright wallpaper, lighter on a dark one) until they reach it.
+enabled = true
+target_dark = 2.0     # contrast the colored stops must reach on a dark wallpaper (score 0)
+target_bright = 4.0   # ... and on a bright one (score 1); in between it scales with the score
+max_shift = 0.45      # most the lightness (OKLCH L) may move
+
+[vividness]
+# Boosts the colored stops' chroma by up to max_boost on a bright wallpaper (scaled by the
+# brightness score, so none on a dark one). Keeps the darker colors the contrast step needs rich.
+enabled = true
+max_boost = 0.8       # +80% chroma at score 1
+
+[bands]
+colors = 3            # theme colors in the gradient (of 5), chosen and ordered at random on every window switch
