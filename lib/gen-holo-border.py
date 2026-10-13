@@ -22,6 +22,8 @@ out = os.environ.get("HOLO_OUT") or os.path.expanduser("~/.config/hypr/holo-bord
 ALPHA = cfg["border"]["alpha"]
 BORDER_SIZE = cfg["border"]["size"]
 SH = cfg["shadow"]
+FADE_IN = cfg["fade_in"]["duration"]
+NATIVE_FADE = cfg["fade_in"]["native"]
 CONTRAST = cfg["colors"]["contrast"]
 L_MIN, L_MAX = cfg["colors"]["lightness_min"], cfg["colors"]["lightness_max"]
 C_MIN, C_MAX = cfg["colors"]["chroma_min"], cfg["colors"]["chroma_max"]
@@ -266,6 +268,6 @@ hl.config({{
 
 -- The angle is driven by drift.py, so Hyprland's built-in border loop is off.
 hl.animation({{ leaf = "borderangle", enabled = false }})
--- No color animation on focus change (drift.py fades grey -> holo itself).
-hl.animation({{ leaf = "border", enabled = false }})
+{"-- Hyprland fades inactive grey -> holo itself on focus change (fade_in.native)." if NATIVE_FADE else "-- No color animation on focus change (drift.py fades grey -> holo itself)."}
+hl.animation({{ leaf = "border", enabled = {str(NATIVE_FADE).lower()}, speed = {FADE_IN * 10:g}, bezier = "linear" }})
 ''')

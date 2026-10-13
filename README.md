@@ -12,7 +12,7 @@ like the shimmer on a holo trading card.
   yellow and bright blue, picked and ordered at random on every window switch, with a silver between each
   and white at both ends. It regenerates automatically when you switch themes.
 - **Wallpaper brightness.** The generator scores how bright the wallpaper is (mean perceived lightness,
-  0 = dark, 1 = bright). That score sets the border opacity (75% on a dark wallpaper up to 100% on a bright
+  0 = dark, 1 = bright). That score sets the border opacity (55% on a dark wallpaper up to 100% on a bright
   one), how hard the colors are pushed away from the wallpaper's lightness (contrast target 2.0 up to 4.0),
   and how much extra chroma they get (up to +80%). Dark themes stay soft; bright ones get a stronger border.
 - **Same look on every theme.** Unless `colors.raw` is on, colors are made pastel and clamped into a fixed
@@ -22,7 +22,9 @@ like the shimmer on a holo trading card.
   without it the theme background color is used.)
 - **Drift.** The gradient angle wanders very slowly and reverses direction every few seconds.
 - **Settle.** After a few idle seconds the drift slows to a third of its speed.
-- **Fade in.** Selecting a window fades its border from the inactive grey to the gradient.
+- **Fade in.** Selecting a window fades its border from the inactive grey to the gradient. By default the
+  daemon does the fade; with `fade_in.native = true` Hyprland's own border animation does it, which avoids the
+  one-or-two-frame flash of full color Hyprland paints before the daemon can react.
 - **Opposites.** The silver stops start as the color directly across the color wheel from the color before them
   and fade back to silver.
 - **Shadow.** The focused window gets a faint shadow tinted from the gradient, fading in with the border.
@@ -76,9 +78,9 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 | `adaptive.source`, `high` / `low`, `max_boost`, `lightness_push` | what to compare against (`wallpaper` or `theme`), the distance range, and how strong the boost is |
 | `drift.min_speed` / `max_speed` | degrees per second |
 | `drift.leg_min` / `leg_max` | seconds before it reverses direction |
-| `drift.updates_per_second` | smoothness vs. CPU (60 matches a 60 Hz screen) |
+| `drift.updates_per_second` / `idle_updates_per_second` | update rate while a switch is fading (60 matches a 60 Hz screen) and once it has settled (the slow drift needs far less) |
 | `settle.after` / `settle.factor` | when and how much it slows down |
-| `fade_in.duration` | seconds for the grey-to-gradient fade |
+| `fade_in.duration` / `native` | seconds for the grey-to-gradient fade, and whether Hyprland (`true`) or the daemon (`false`) does it |
 | `bands.colors` | how many theme colors are in the gradient (of 5) |
 | `opposites.fade` | seconds for the silvers to fade back from their opposite color |
 | `shadow.range` / `alpha` / `render_power` | size, opacity and softness of the focused-window shadow |

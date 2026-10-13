@@ -23,6 +23,7 @@ leg_min = 1.0         # each leg (one direction) lasts this many seconds ...
 leg_max = 6.0         # ... up to this many, then it reverses
 ease = 2.5            # how quickly the speed follows its target (1/s)
 updates_per_second = 60   # match the monitor refresh rate for smooth motion (costs a little CPU)
+idle_updates_per_second = 10   # rate once the fades have finished; the slow drift needs far less
 
 
 [settle]
@@ -46,22 +47,23 @@ max_boost = 0.4
 lightness_push = 0.15
 
 [fade_in]
-duration = 0.35       # seconds to go from the grey inactive border to the holo gradient
+duration = 0.5        # seconds to go from the grey inactive border to the holo gradient
+native = true         # true: Hyprland does the fade itself (no flash on switch, but it can look different); false: drift.py does
 
 [shadow]
 enabled = true        # focused window only: fades in with the border and stays
 range = 5             # size/softness in px
 render_power = 3      # falloff: higher = softer edge
-alpha = 0.1           # shadow opacity once faded in
+alpha = 0.03          # shadow opacity once faded in
 
 [opposites]
-fade = 3.0                 # seconds for them to fade back to their normal color after a window is selected
+fade = 1.5                 # seconds for them to fade back to their normal color after a window is selected
 
 [transparency]
 # Scores how bright the wallpaper is (0 = dark, 1 = bright) and sets the border opacity from it,
 # overriding border.alpha. Brighter wallpaper = more opaque border so pale colors stay visible.
 enabled = true
-min_alpha = 0.75      # border opacity on a dark wallpaper
+min_alpha = 0.55      # border opacity on a dark wallpaper
 max_alpha = 1.0       # border opacity on a bright wallpaper
 dark_l = 0.2          # wallpaper lightness (OKLCH L) that scores 0
 bright_l = 0.8        # ... and 1

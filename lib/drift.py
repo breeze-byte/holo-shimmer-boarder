@@ -20,9 +20,10 @@ cfg = holo_config.load()
 MIN_SPEED, MAX_SPEED = cfg["drift"]["min_speed"], cfg["drift"]["max_speed"]
 RETARGET = (cfg["drift"]["leg_min"], cfg["drift"]["leg_max"])
 EASE = cfg["drift"]["ease"]
-HZ = cfg["drift"]["updates_per_second"]
+HZ, IDLE_HZ = cfg["drift"]["updates_per_second"], cfg["drift"]["idle_updates_per_second"]
 SETTLE_AFTER, SETTLED_FACTOR, SETTLE_EASE = cfg["settle"]["after"], cfg["settle"]["factor"], cfg["settle"]["ease"]
 FADE_IN = cfg["fade_in"]["duration"]
+NATIVE_FADE = cfg["fade_in"]["native"]   # Hyprland does the grey -> holo fade; we only keep the colors current
 INACTIVE = (0x59, 0x59, 0x59, 0xaa)   # Hyprland's inactive border (aa595959)
 SHADOW_ON, SHADOW_ALPHA = cfg["shadow"]["enabled"], cfg["shadow"]["alpha"]
 OPP_FADE = cfg["opposites"]["fade"]
@@ -34,6 +35,8 @@ WALLPAPER = os.path.expanduser("~/.local/state/omarchy/current/background")
 GENERATOR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gen-holo-border.py")
 WALLPAPER_EVERY = 3.0   # seconds between wallpaper-change checks
 focus_at = -1e9
+send_lock = threading.Lock()    # border commands go out one at a time, in the order they were decided
+focus_evt = threading.Event()   # wakes the main loop the moment focus changes
 state = {"colors": None, "angle": 0.0}   # latest border, shared with the event thread   # when focus last changed (set by the event thread)
 
 def ease(x):
@@ -113,11 +116,14 @@ def watch_focus():
                     # Hyprland repeats this event on every title change (e.g. a terminal
                     # spinner), so only a different window address counts as a switch.
                     if l.startswith(b"activewindowv2>>") and l != last:
-                        last, focus_at = l, time.monotonic()
-                        # Hyprland has already painted the new window in full holo; drop to
-                        # grey right away so the fade starts from grey, not from a flash.
-                        if state["colors"]:
-                            send(eval_colors(state["colors"], 0.0, state["angle"], 0.0))
+                        last = l
+                        with send_lock:
+                            focus_at = time.monotonic()
+                            # Hyprland has already painted the new window in full holo; drop to
+                            # grey right away so the fade starts from grey, not from a flash.
+                            if state["colors"] and not NATIVE_FADE:
+                                send(eval_colors(state["colors"], 0.0, state["angle"], 0.0))
+                        focus_evt.set()
         except Exception:
             time.sleep(1)
 
@@ -131,11 +137,16 @@ def main():
     speed = target = (MIN_SPEED + MAX_SPEED) / 2
     retarget_at = 0.0
     factor = 1.0
+    last_cmd = None
     last = next_tick = time.monotonic()
     while True:
         # Fixed schedule (not sleep(1/HZ)) so frame timing doesn't drift.
-        next_tick += 1 / HZ
-        time.sleep(max(0.0, next_tick - time.monotonic()))
+        # Full rate only while a window switch is still fading; the slow drift needs far less.
+        busy = time.monotonic() - focus_at < max(FADE_IN, OPP_FADE) + 0.1
+        next_tick += 1 / (HZ if busy else IDLE_HZ)
+        if focus_evt.wait(max(0.0, next_tick - time.monotonic())):   # woken early by a focus change
+            focus_evt.clear()
+            next_tick = time.monotonic()
         now = time.monotonic()
         dt, last = now - last, now
         if now >= retarget_at:
@@ -157,11 +168,16 @@ def main():
             if m != mtime:
                 (normal, comp, names), mtime = load_colors(), m
                 layout = new_layout(names)
-            if layout_for != focus_at:        # new window: a fresh random arrangement (hidden by the fade-in)
-                layout, layout_for = new_layout(names), focus_at
-            colors = with_opposites(layout, normal, comp, now - focus_at)
-            state["colors"], state["angle"] = colors, angle
-            send(eval_colors(colors, ease((now - focus_at) / FADE_IN), angle))
+            with send_lock:    # read focus_at and send in one step, so a stale update can't land after the grey drop
+                since = time.monotonic() - focus_at
+                if layout_for != focus_at:        # new window: a fresh random arrangement (hidden by the fade-in)
+                    layout, layout_for = new_layout(names), focus_at
+                colors = with_opposites(layout, normal, comp, since)
+                state["colors"], state["angle"] = colors, angle
+                cmd = eval_colors(colors, 1.0 if NATIVE_FADE else ease(since / FADE_IN), angle)
+                if cmd != last_cmd:               # nothing visibly changed: don't make Hyprland redo the border
+                    send(cmd)
+                    last_cmd = cmd
         except Exception:
             time.sleep(1)
 
