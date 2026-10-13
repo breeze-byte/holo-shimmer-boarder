@@ -1,7 +1,7 @@
 # holo-border
 
 A holographic-foil window border for [Omarchy](https://omarchy.org) (Hyprland). The focused window gets a
-slowly drifting gradient in your theme's colors with thin white and silver glints,
+gradient in your theme's colors with thin white and silver glints,
 like the shimmer on a holo trading card.
 
 <!-- Add a screen recording here: docs/demo.gif -->
