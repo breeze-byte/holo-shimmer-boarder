@@ -18,9 +18,11 @@ like the shimmer on a holo trading card.
   in between. If the wallpaper changes, the daemon re-samples it. (Needs ImageMagick; without it the
   theme background color is used.)
 - **Drift.** The gradient angle wanders smoothly and reverses direction every few seconds.
-- **Tilt.** Where your cursor sits inside the focused window shifts the gradient, like tilting a card.
 - **Settle.** After a few idle seconds the drift slows to a third of its speed.
-- **Flash.** Selecting a window briefly shows the theme's complementary colors, which fade back.
+- **Fade in.** Selecting a window fades its border from the inactive grey to the gradient.
+- **Sweep.** Selecting a window also turns the gradient a set angle counter-clockwise, easing out into the drift.
+- **Opposites.** The silver stops start as the opposite of the nearest theme color and fade back to silver.
+- **Shadow.** The focused window gets a faint shadow tinted from the gradient, fading in with the border.
 - **On/off toggle.** One command or keybind; off restores Omarchy's normal border.
 
 ## Requirements
@@ -72,16 +74,18 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 | `drift.min_speed` / `max_speed` | degrees per second |
 | `drift.leg_min` / `leg_max` | seconds before it reverses direction |
 | `drift.updates_per_second` | smoothness vs. CPU |
-| `tilt.x` / `tilt.y` | how far the cursor tilts the gradient |
-| `tilt.max_rate` | fastest the tilt can turn (deg/s) |
 | `settle.after` / `settle.factor` | when and how much it slows down |
-| `flash.hold` / `flash.fade` | how long the complementary colors last |
+| `fade_in.duration` | seconds for the grey-to-gradient fade |
+| `sweep.degrees` / `duration` / `clockwise_sign` | the turn on selecting a window |
+| `opposites.stops` / `fade` | which stops flash their opposite, and how long it takes to fade back |
+| `shadow.range` / `alpha` / `render_power` | size, opacity and softness of the focused-window shadow |
+| `colors.raw` | use the theme's exact colors, with no pastel, clamp or wallpaper adjust |
 
 ## How it works
 
 Hyprland caps its built-in border animation at about 10 seconds per turn and can't randomize or react
-to the mouse. So `drift.py` is a small daemon that sets the gradient angle itself over Hyprland's
-command socket, 20 times a second, using the cursor position and the focused window. `gen-holo-border.py`
+to focus changes. So `drift.py` is a small daemon that sets the gradient angle itself over Hyprland's
+command socket, 60 times a second, and listens for focus events. `gen-holo-border.py`
 turns the theme's `colors.toml` into the gradient and writes it where Hyprland loads it.
 
 Cost: Hyprland re-parses the config on every update, so expect a few percent of one CPU core while

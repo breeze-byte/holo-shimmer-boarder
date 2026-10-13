@@ -3,9 +3,10 @@
 
 [border]
 size = 3          # border width in px (Omarchy's default is 2)
-alpha = 1.0       # border opacity, 1.0 = solid
+alpha = 0.6       # border opacity, 1.0 = solid
 
 [colors]
+raw = true            # test: use the theme's exact colors (no pastel, clamp or wallpaper adjust)
 # Every theme color is clamped into this OKLCH band, so no theme can be harsher
 # than the others. Raise chroma_max for more vivid colors, lightness_min for paler.
 lightness_min = 0.84
@@ -16,28 +17,19 @@ grey_chroma = 0.012   # near-grey theme colors stay neutral at this chroma
 contrast = 2.109375   # contrast boost applied before the clamp
 
 [drift]
-min_speed = 4.5       # degrees per second (magnitude)
-max_speed = 16.5
+min_speed = 2.25
+max_speed = 8.25
 leg_min = 1.0         # each leg (one direction) lasts this many seconds ...
 leg_max = 6.0         # ... up to this many, then it reverses
 ease = 2.5            # how quickly the speed follows its target (1/s)
-updates_per_second = 20   # smoother = more CPU
+updates_per_second = 60   # match the monitor refresh rate for smooth motion (costs a little CPU)
 
-[tilt]
-x = 55.0              # degrees the gradient shifts when the cursor is at the left/right edge
-y = 30.0              # ... and at the top/bottom edge
-ease = 6.0
-max_rate = 30.0       # fastest the tilt may turn, degrees per second (keeps window switches calm)
 
 [settle]
-after = 3.0           # idle seconds (no focus change / mouse movement) before it slows down
+after = 3.0           # idle seconds (no focus change) before it slows down
 factor = 0.3333       # speed multiplier once settled
 ease = 0.8
-cursor_px = 6         # mouse movement beyond this counts as activity
 
-[flash]
-hold = 0.6            # seconds the complementary colors stay at full strength after selecting a window
-fade = 2.4            # seconds to fade back to the theme colors
 
 [adaptive]
 # Adapts each border color to what is behind it. The "dominant color" is sampled from
@@ -52,3 +44,21 @@ high = 0.60
 low = 0.25
 max_boost = 0.4
 lightness_push = 0.15
+
+[fade_in]
+duration = 0.35       # seconds to go from the grey inactive border to the holo gradient
+
+[sweep]
+degrees = 45.0        # gradient turns this far on a window switch (always counter-clockwise)
+duration = 3.6
+clockwise_sign = -1   # -1 = counter-clockwise, 1 = clockwise (same for left and right)
+
+[shadow]
+enabled = true        # focused window only: fades in with the border and stays
+range = 5             # size/softness in px
+render_power = 3      # falloff: higher = softer edge
+alpha = 0.1           # shadow opacity once faded in
+
+[opposites]
+stops = [5, 10]            # stops (0-based, in the order of holo-border.lua) that flash the opposite; 5 and 10 are the silvers
+fade = 5.0                 # seconds for them to fade back to their normal color after a window is selected
