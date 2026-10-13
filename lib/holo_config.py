@@ -18,11 +18,11 @@ DEFAULTS = {
     "settle": {"after": 3.0, "factor": 1 / 3, "ease": 0.8},
     "opposites": {"fade": 1.5},
     "bands": {"colors": 3},
-    "transparency": {"enabled": True, "min_alpha": 0.55, "max_alpha": 1.0, "dark_l": 0.2, "bright_l": 0.8},
+    "transparency": {"enabled": True, "min_alpha": 0.38, "max_alpha": 1.0, "dark_l": 0.2, "bright_l": 0.8},
     "legibility": {"enabled": True, "target_dark": 2.0, "target_bright": 4.0, "max_shift": 0.45},
     "vividness": {"enabled": True, "max_boost": 0.8},
     "shadow": {"enabled": True, "range": 5, "render_power": 3, "alpha": 0.03},
-    "fade_in": {"duration": 0.5, "native": False},
+    "fade_in": {"duration": 0.3, "native": False},
     "sweep": {"degrees": 45.0, "duration": 3.6, "clockwise_sign": -1},
     "adaptive": {"enabled": True, "source": "wallpaper", "high": 0.60, "low": 0.25, "max_boost": 0.4, "lightness_push": 0.15},
 }

@@ -47,7 +47,7 @@ max_boost = 0.4
 lightness_push = 0.15
 
 [fade_in]
-duration = 0.5        # seconds to go from the grey inactive border to the holo gradient
+duration = 0.3        # seconds to go from the grey inactive border to the holo gradient
 native = true         # true: Hyprland does the fade itself (no flash on switch, but it can look different); false: drift.py does
 
 [shadow]
@@ -63,7 +63,7 @@ fade = 1.5                 # seconds for them to fade back to their normal color
 # Scores how bright the wallpaper is (0 = dark, 1 = bright) and sets the border opacity from it,
 # overriding border.alpha. Brighter wallpaper = more opaque border so pale colors stay visible.
 enabled = true
-min_alpha = 0.55      # border opacity on a dark wallpaper
+min_alpha = 0.38      # border opacity on a dark wallpaper
 max_alpha = 1.0       # border opacity on a bright wallpaper
 dark_l = 0.2          # wallpaper lightness (OKLCH L) that scores 0
 bright_l = 0.8        # ... and 1

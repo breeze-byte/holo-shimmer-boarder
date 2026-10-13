@@ -12,7 +12,7 @@ like the shimmer on a holo trading card.
   yellow and bright blue, picked and ordered at random on every window switch, with a silver between each
   and white at both ends. It regenerates automatically when you switch themes.
 - **Wallpaper brightness.** The generator scores how bright the wallpaper is (mean perceived lightness,
-  0 = dark, 1 = bright). That score sets the border opacity (55% on a dark wallpaper up to 100% on a bright
+  0 = dark, 1 = bright). That score sets the border opacity (38% on a dark wallpaper up to 100% on a bright
   one), how hard the colors are pushed away from the wallpaper's lightness (contrast target 2.0 up to 4.0),
   and how much extra chroma they get (up to +80%). Dark themes stay soft; bright ones get a stronger border.
 - **Same look on every theme.** Unless `colors.raw` is on, colors are made pastel and clamped into a fixed
