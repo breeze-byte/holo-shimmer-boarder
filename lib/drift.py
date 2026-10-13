@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-"""Drift, fade, opposites and shadow for the holo border.
+"""Fade, bands, opposites and shadow for the holo border.
 
-Hyprland's built-in border loop can't go slower than ~10s per turn, so this
-daemon turns the gradient angle itself over Hyprland's command socket:
+The gradient itself is static (no drift), so while nothing is happening this
+daemon sends Hyprland nothing at all. On a window switch it works over
+Hyprland's command socket for a fraction of a second:
 
-- drift:  the angle moves at a speed that wanders smoothly, reversing direction
-          every few seconds (easing through zero)
-- settle: after a few idle seconds the drift slows down
 - bands:  7 stops (white, then 3 random theme colors with a silver between each, white), re-randomized on every window switch
 - opposites: the silvers start as the opposite of the color before them, fading to silver
 - shadow: a faint shadow tinted from the gradient fades in with the border and stays
@@ -17,11 +15,8 @@ import json, os, random, socket, subprocess, sys, threading, time
 import holo_config
 
 cfg = holo_config.load()
-MIN_SPEED, MAX_SPEED = cfg["drift"]["min_speed"], cfg["drift"]["max_speed"]
-RETARGET = (cfg["drift"]["leg_min"], cfg["drift"]["leg_max"])
-EASE = cfg["drift"]["ease"]
-HZ, IDLE_HZ = cfg["drift"]["updates_per_second"], cfg["drift"]["idle_updates_per_second"]
-SETTLE_AFTER, SETTLED_FACTOR, SETTLE_EASE = cfg["settle"]["after"], cfg["settle"]["factor"], cfg["settle"]["ease"]
+HZ = cfg["fade_in"]["updates_per_second"]
+ANGLE = cfg["border"]["angle"]
 FADE_IN = cfg["fade_in"]["duration"]
 NATIVE_FADE = cfg["fade_in"]["native"]   # Hyprland does the grey -> holo fade; we only keep the colors current
 INACTIVE = (0x59, 0x59, 0x59, 0xaa)   # Hyprland's inactive border (aa595959)
@@ -34,10 +29,12 @@ COLORS = os.path.expanduser("~/.local/state/holo/colors.json")   # written by ge
 WALLPAPER = os.path.expanduser("~/.local/state/omarchy/current/background")
 GENERATOR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gen-holo-border.py")
 WALLPAPER_EVERY = 3.0   # seconds between wallpaper-change checks
-focus_at = -1e9
+focus_at = -1e9   # when focus last changed (set by the event thread)
 send_lock = threading.Lock()    # border commands go out one at a time, in the order they were decided
 focus_evt = threading.Event()   # wakes the main loop the moment focus changes
-state = {"colors": None, "angle": 0.0}   # latest border, shared with the event thread   # when focus last changed (set by the event thread)
+sent_at = 0.0                   # when we last sent a border command
+resend = threading.Event()      # Hyprland reloaded its config and reset the border: send it again
+state = {"colors": None, "angle": float(ANGLE)}   # latest border, shared with the event thread
 
 def ease(x):
     """Smootherstep: 0 -> 1 with zero speed and acceleration at both ends."""
@@ -93,6 +90,8 @@ def wallpaper_stamp():
         return None
 
 def send(cmd):
+    global sent_at
+    sent_at = time.monotonic()
     s = socket.socket(socket.AF_UNIX)
     s.settimeout(1)
     s.connect(SOCK)
@@ -113,6 +112,11 @@ def watch_focus():
                 buf += chunk
                 *lines, buf = buf.split(b"\n")
                 for l in lines:
+                    # Our own border commands also report "configreloaded"; only a reload we did not
+                    # cause (theme or wallpaper change) resets the border and needs a re-send.
+                    if l.startswith(b"configreloaded") and time.monotonic() - sent_at > 0.3:
+                        resend.set()
+                        focus_evt.set()
                     # Hyprland repeats this event on every title change (e.g. a terminal
                     # spinner), so only a different window address counts as a switch.
                     if l.startswith(b"activewindowv2>>") and l != last:
@@ -132,31 +136,21 @@ def main():
     (normal, comp, names), mtime = load_colors(), os.path.getmtime(COLORS)
     layout, layout_for = new_layout(names), focus_at
     wall, wall_at = wallpaper_stamp(), 0.0
-    angle = random.uniform(0, 360)
-    direction = 1
-    speed = target = (MIN_SPEED + MAX_SPEED) / 2
-    retarget_at = 0.0
-    factor = 1.0
+    angle = float(ANGLE)
     last_cmd = None
-    last = next_tick = time.monotonic()
+    next_tick = time.monotonic()
     while True:
-        # Fixed schedule (not sleep(1/HZ)) so frame timing doesn't drift.
-        # Full rate only while a window switch is still fading; the slow drift needs far less.
+        # 60 updates a second only while a window switch is still fading; otherwise sleep until
+        # the next focus event (waking now and then to check for a new wallpaper or theme).
         busy = time.monotonic() - focus_at < max(FADE_IN, OPP_FADE) + 0.1
-        next_tick += 1 / (HZ if busy else IDLE_HZ)
+        next_tick += 1 / HZ if busy else 1.0
         if focus_evt.wait(max(0.0, next_tick - time.monotonic())):   # woken early by a focus change
             focus_evt.clear()
             next_tick = time.monotonic()
+        if resend.is_set() or time.monotonic() - sent_at > 30:   # a reload resets the border; also refresh now and then
+            resend.clear()
+            last_cmd = None
         now = time.monotonic()
-        dt, last = now - last, now
-        if now >= retarget_at:
-            direction = -direction
-            target = direction * random.uniform(MIN_SPEED, MAX_SPEED)
-            retarget_at = now + random.uniform(*RETARGET)
-        speed += (target - speed) * min(1.0, EASE * dt)
-        goal_factor = SETTLED_FACTOR if now - focus_at > SETTLE_AFTER else 1.0
-        factor += (goal_factor - factor) * min(1.0, SETTLE_EASE * dt)
-        angle = (angle + speed * factor * dt) % 360
         try:
             if cfg["adaptive"]["enabled"] and cfg["adaptive"]["source"] == "wallpaper" and now >= wall_at:
                 wall_at = now + WALLPAPER_EVERY

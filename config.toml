@@ -2,6 +2,7 @@
 # Delete a line to fall back to its default.
 
 [border]
+angle = 45         # fixed gradient angle in degrees (the gradient no longer drifts)
 size = 3          # border width in px (Omarchy's default is 2)
 alpha = 0.9       # border opacity, 1.0 = solid
 
@@ -15,22 +16,6 @@ chroma_min = 0.075
 chroma_max = 0.13
 grey_chroma = 0.012   # near-grey theme colors stay neutral at this chroma
 contrast = 2.109375   # contrast boost applied before the clamp
-
-[drift]
-min_speed = 0.2 
-max_speed = 0.6 
-leg_min = 1.0         # each leg (one direction) lasts this many seconds ...
-leg_max = 6.0         # ... up to this many, then it reverses
-ease = 2.5            # how quickly the speed follows its target (1/s)
-updates_per_second = 60   # match the monitor refresh rate for smooth motion (costs a little CPU)
-idle_updates_per_second = 10   # rate once the fades have finished; the slow drift needs far less
-
-
-[settle]
-after = 3.0           # idle seconds (no focus change) before it slows down
-factor = 0.3333       # speed multiplier once settled
-ease = 0.8
-
 
 [adaptive]
 # Adapts each border color to what is behind it. The "dominant color" is sampled from
@@ -49,6 +34,7 @@ lightness_push = 0.15
 [fade_in]
 duration = 0.3        # seconds to go from the grey inactive border to the holo gradient
 native = true         # true: Hyprland does the fade itself (no flash on switch, but it can look different); false: drift.py does
+updates_per_second = 60   # update rate while a fade is running (match the screen refresh); the rest of the time nothing is sent
 
 [shadow]
 enabled = true        # focused window only: fades in with the border and stays

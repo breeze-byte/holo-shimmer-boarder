@@ -20,8 +20,7 @@ like the shimmer on a holo trading card.
 - **Adapts to what is behind it.** Colors close to the wallpaper's dominant color get more chroma and move
   lighter or darker away from it. If the wallpaper changes, the daemon re-samples it. (Needs ImageMagick;
   without it the theme background color is used.)
-- **Drift.** The gradient angle wanders very slowly and reverses direction every few seconds.
-- **Settle.** After a few idle seconds the drift slows to a third of its speed.
+- **Static gradient.** The angle is fixed (`border.angle`), so while nothing is happening the border costs nothing.
 - **Fade in.** Selecting a window fades its border from the inactive grey to the gradient. By default the
   daemon does the fade; with `fade_in.native = true` Hyprland's own border animation does it, which avoids the
   one-or-two-frame flash of full color Hyprland paints before the daemon can react.
@@ -72,14 +71,11 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 
 | Setting | Effect |
 |---|---|
-| `border.size`, `border.alpha` | width in px, opacity (used when `transparency.enabled` is off) |
+| `border.size`, `border.angle`, `border.alpha` | width in px, opacity (used when `transparency.enabled` is off) |
 | `colors.chroma_max` / `chroma_min` | how vivid the colors can be |
 | `colors.lightness_min` / `lightness_max` | how pale or deep the colors can be |
 | `adaptive.source`, `high` / `low`, `max_boost`, `lightness_push` | what to compare against (`wallpaper` or `theme`), the distance range, and how strong the boost is |
-| `drift.min_speed` / `max_speed` | degrees per second |
-| `drift.leg_min` / `leg_max` | seconds before it reverses direction |
-| `drift.updates_per_second` / `idle_updates_per_second` | update rate while a switch is fading (60 matches a 60 Hz screen) and once it has settled (the slow drift needs far less) |
-| `settle.after` / `settle.factor` | when and how much it slows down |
+| `fade_in.updates_per_second` | update rate while a fade runs (match the screen refresh); nothing is sent otherwise |
 | `fade_in.duration` / `native` | seconds for the grey-to-gradient fade, and whether Hyprland (`true`) or the daemon (`false`) does it |
 | `bands.colors` | how many theme colors are in the gradient (of 5) |
 | `opposites.fade` | seconds for the silvers to fade back from their opposite color |
@@ -92,13 +88,14 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 
 ## How it works
 
-Hyprland caps its built-in border animation at about 10 seconds per turn and can't randomize or react
-to focus changes. So `drift.py` is a small daemon that sets the gradient angle itself over Hyprland's
-command socket, 60 times a second, and listens for focus events. `gen-holo-border.py`
-turns the theme's `colors.toml` into the gradient and writes it where Hyprland loads it.
+`gen-holo-border.py` turns the theme's `colors.toml` into a gradient and writes it where Hyprland loads it.
+`drift.py` (the name is historical; the gradient no longer drifts) is a small daemon that listens for
+Hyprland's focus events. When you select a window it sends Hyprland a fresh random arrangement of the colors and,
+for about half a second, 60 updates a second to run the fade and the opposite-color flash. The rest of the time
+it sends nothing. If Hyprland reloads its config (a theme or wallpaper change) it sends the border again.
 
-Cost: Hyprland re-parses the config on every update, so expect a few percent of one CPU core while
-the border is animating. Lower `drift.updates_per_second` to reduce it.
+Cost: with the border on and idle, Hyprland uses no more CPU than with the border off. A window switch costs a
+short burst.
 
 ## Limitations
 
