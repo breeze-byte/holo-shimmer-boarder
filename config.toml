@@ -49,7 +49,7 @@ fade = 1.5                 # seconds for them to fade back to their normal color
 # Scores how bright the wallpaper is (0 = dark, 1 = bright) and sets the border opacity from it,
 # overriding border.alpha. Brighter wallpaper = more opaque border so pale colors stay visible.
 enabled = true
-min_alpha = 0.38      # border opacity on a dark wallpaper
+min_alpha = 0.46      # border opacity on a dark wallpaper
 max_alpha = 1.0       # border opacity on a bright wallpaper
 dark_l = 0.2          # wallpaper lightness (OKLCH L) that scores 0
 bright_l = 0.8        # ... and 1
@@ -59,11 +59,11 @@ bright_l = 0.8        # ... and 1
 # colored stops average below the target, their lightness is moved (lighter or darker, whichever
 # reaches it with the smaller move) until they reach it, staying within min/max_lightness.
 enabled = true
-target_dark = 2.0     # contrast the colored stops must reach on a dark wallpaper (score 0)
-target_bright = 4.0   # ... and on a bright one (score 1); in between it scales with the score
+target_dark = 2.4     # contrast the colored stops must reach on a dark wallpaper (score 0)
+target_bright = 4.8   # ... and on a bright one (score 1); in between it scales with the score
 max_shift = 0.45      # most the lightness (OKLCH L) may move
-min_lightness = 0.55  # dark themes: never darker than this (OKLCH L), so the foil stays colorful, not muddy
-max_lightness = 0.90  # never lighter than this, so it never washes out to white; the outline adds the rest
+min_lightness = 0.66  # dark themes: never darker than this (OKLCH L), so the foil stays colorful, not muddy
+max_lightness = 0.94  # never lighter than this, so it never washes out to white; the outline adds the rest
 
 [vividness]
 # Boosts the colored stops' chroma by up to max_boost on a bright wallpaper (scaled by the
