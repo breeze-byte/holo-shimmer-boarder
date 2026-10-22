@@ -12,7 +12,7 @@ DEFAULTS = {
     },
     "opposites": {"fade": 1.5},
     "bands": {"colors": 10, "highlights": 0, "wide": 0, "repeat": 3},
-    "shimmer": {"enabled": True, "seconds_per_band": 1.5, "direction": -1, "updates_per_second": 30},
+    "shimmer": {"enabled": True, "seconds_per_band": 0.5, "direction": -1, "updates_per_second": 30},
     "outline": {"enabled": True, "range": 2, "render_power": 4, "min_alpha": 0.25, "max_alpha": 0.85},
     "transparency": {"enabled": True, "min_alpha": 0.38, "max_alpha": 1.0, "dark_l": 0.2, "bright_l": 0.8},
     "legibility": {"enabled": True, "target_dark": 2.0, "target_bright": 4.0, "max_shift": 0.45},
