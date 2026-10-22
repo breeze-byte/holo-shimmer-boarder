@@ -26,6 +26,9 @@ INACTIVE = (0x59, 0x59, 0x59, 0xaa)   # Hyprland's inactive border (aa595959)
 SHADOW_ON, SHADOW_ALPHA = cfg["shadow"]["enabled"], cfg["shadow"]["alpha"]
 OPP_FADE = cfg["opposites"]["fade"]
 BANDS = cfg["bands"]
+MAX_STOPS = 10   # Hyprland accepts more gradient colors but only draws the first 10
+N_GLINTS = max(0, min(BANDS["highlights"], MAX_STOPS - 2))
+N_COLORS = max(2, min(BANDS["colors"], MAX_STOPS - N_GLINTS))
 SHIMMER = cfg["shimmer"]
 OUTLINE_ON = cfg["outline"]["enabled"]
 
@@ -57,10 +60,10 @@ def load_colors():
 def new_layout(ring_len):
     """A fresh random arrangement: a list of ("ring", offset) colored stops and ("glint", offset)
     white glints, where offset is a position on the hue ring (in ring samples). The colored stops
-    step along the ring from a random start in a random direction, spanning it once; a few steps
-    are 0 (a doubled, wider band); glints sit between colored stops and remember their neighbor."""
-    n = max(2, BANDS["colors"])
-    step = ring_len / n * random.choice((1, -1))
+    step along the ring in hue order from a random start, spanning it once; a few steps are 0
+    (a doubled, wider band); glints sit between colored stops and remember their neighbor."""
+    n = N_COLORS
+    step = ring_len / n
     wide = set(random.sample(range(1, n), min(BANDS["wide"], (n - 1) // 3)))   # most bands stay distinct
     pos, offsets = random.uniform(0, ring_len), []
     for i in range(n):
@@ -68,7 +71,7 @@ def new_layout(ring_len):
             pos += step
         offsets.append(pos)
     layout = [("ring", p) for p in offsets]
-    for g in sorted(random.sample(range(1, n), min(BANDS["highlights"], n - 1)), reverse=True):
+    for g in sorted(random.sample(range(1, n), min(N_GLINTS, n - 1)), reverse=True):
         layout.insert(g, ("glint", offsets[g - 1]))
     return layout
 
@@ -79,10 +82,12 @@ def sample(ring, pos):
     return [round(x + (y - x) * f) for x, y in zip(a, b)]
 
 def stop_colors(layout, pal, since_focus, now):
-    """Each stop's color now: colored stops slide along the ring (the shimmer); glints start as
-    the opposite of the color before them and fade to white."""
+    """Each stop's color now: colored stops slide along the ring (the shimmer), always in the
+    same direction; glints start as the opposite of the color before them and fade to white."""
     ring_len = len(pal["ring"])
-    shift = now / SHIMMER["seconds_per_band"] * ring_len / max(2, BANDS["colors"]) if SHIMMER["enabled"] else 0.0
+    shift = 0.0
+    if SHIMMER["enabled"]:   # direction 1: each band takes the color of the one after it, so the pattern flows toward the gradient's start
+        shift = SHIMMER["direction"] * now / SHIMMER["seconds_per_band"] * ring_len / N_COLORS
     k = ease(since_focus / OPP_FADE)
     out = []
     for kind, pos in layout:

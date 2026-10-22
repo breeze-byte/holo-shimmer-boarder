@@ -71,11 +71,12 @@ max_boost = 0.8       # +80% chroma at score 1
 
 [bands]
 # The theme colors are laid out around the color wheel (with a blended color between each pair
-# of neighbors) so every band flows into the next. Each window switch picks a random start and
-# direction. Keep colors + highlights at 10 or less (Hyprland's gradient limit).
-colors = 7            # colored stops in the gradient
-highlights = 2        # thin white glints, dropped in at random spots
-wide = 2              # up to this many bands are doubled at random, so the widths vary
+# of neighbors) so every band flows into the next. Each window switch picks a random start.
+# Hyprland draws at most 10 gradient colors, so colors + highlights is capped at 10: every
+# glint or doubled band costs a colored band (fewer, longer bands).
+colors = 10           # colored stops in the gradient
+highlights = 0        # thin white glints, dropped in at random spots
+wide = 0              # up to this many bands are doubled at random, so the widths vary
 
 [shimmer]
 # Each band slowly fades into its neighbor's color, so the foil shimmers. This keeps the daemon
@@ -83,6 +84,7 @@ wide = 2              # up to this many bands are doubled at random, so the widt
 # nothing at idle.
 enabled = true
 seconds_per_band = 2.5    # seconds for a band to become the next color
+direction = 1             # 1 or -1: which way the bands flow (always the same way)
 updates_per_second = 30   # smoothness of the shimmer (it moves slowly, so 30 is plenty)
 
 [outline]
