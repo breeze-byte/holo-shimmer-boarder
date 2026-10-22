@@ -41,6 +41,7 @@ case ":$PATH:" in *":$BIN:"*) ;; *) echo "note: $BIN is not on your PATH; the ke
 # --- files ---
 mkdir -p "$LIB" "$BIN" "$HOOKS" "$HOME/.local/state/holo"
 cp "$HERE"/lib/*.py "$LIB/"
+mkdir -p "$LIB/shaders" && cp "$HERE"/lib/shaders/* "$LIB/shaders/"
 chmod +x "$LIB/gen-holo-border.py" "$LIB/drift.py"
 [[ -f $LIB/config.toml ]] || cp "$HERE/config.toml" "$LIB/config.toml"
 cp "$HERE/bin/holo" "$BIN/holo"; chmod +x "$BIN/holo"

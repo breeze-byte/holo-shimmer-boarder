@@ -27,18 +27,30 @@ stop_daemon() {
 
 # HOLO_NO_HYPRCTL=1 skips talking to Hyprland (used by the installer's tests).
 reload() { [[ -n $HOLO_NO_HYPRCTL ]] || hyprctl reload >/dev/null 2>&1; }
+# The border shader override (bands.repeat) is a patched copy of Hyprland 0.56's gradient.glsl,
+# so it is only loaded on 0.56; elsewhere (or with holo off) Hyprland's own shaders are used.
+SHADER_DIR="$STATE/shaders"
+shaders() {
+  [[ -n $HOLO_NO_HYPRCTL ]] && return
+  if enabled && [[ -f $SHADER_DIR/gradient.glsl ]] && hyprctl version | grep -q '^Hyprland 0\.56\.'; then
+    hyprctl reloadshaders "$SHADER_DIR" >/dev/null
+  else
+    hyprctl reloadshaders >/dev/null
+  fi
+}
 notify() { [[ -n $HOLO_NO_HYPRCTL ]] || notify-send -u low "Holo border" "$1" 2>/dev/null; }
 
 case "${1:-toggle}" in
   on)
     touch "$FLAG"
-    python3 "$DIR/gen-holo-border.py" && reload
+    python3 "$DIR/gen-holo-border.py" && reload && shaders
     [[ -n $HOLO_NO_HYPRCTL ]] || start_daemon
     notify "On"
     ;;
   off)
     rm -f "$FLAG"
     stop_daemon
+    shaders
     # Off still keeps the configured border width; only the gradient/animation go away.
     size=$(python3 -c "import sys; sys.path.insert(0, '$DIR'); import holo_config; print(holo_config.load()['border']['size'])" 2>/dev/null || echo 2)
     printf -- '-- holo border is off (run: holo on); keeps the configured width\nhl.config({ general = { border_size = %s } })\n' "$size" >"$OUT"
@@ -54,15 +66,15 @@ case "${1:-toggle}" in
   restart)   # after editing config.toml
     if enabled; then
       stop_daemon
-      python3 "$DIR/gen-holo-border.py" && reload
+      python3 "$DIR/gen-holo-border.py" && reload && shaders
       start_daemon
     fi
     ;;
   refresh)   # after a theme change: regenerate the colors if enabled
-    enabled && python3 "$DIR/gen-holo-border.py" && reload
+    enabled && python3 "$DIR/gen-holo-border.py" && reload && shaders
     ;;
   start)     # at login: make sure the daemon runs if enabled
-    enabled && start_daemon
+    enabled && { shaders; start_daemon; }
     ;;
   *)
     echo "usage: holo on|off|toggle|status|restart|refresh|start" >&2

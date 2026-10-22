@@ -26,9 +26,9 @@ if [[ $PURGE == 1 ]]; then
   rm -rf "$HYPR/holo"
 else
   rm -f "$HYPR"/holo/*.py
-  rm -rf "$HYPR"/holo/__pycache__
+  rm -rf "$HYPR"/holo/__pycache__ "$HYPR"/holo/shaders
   echo "kept $HYPR/holo/config.toml (use --purge to delete it)"
 fi
 
-[[ -n ${HOLO_NO_HYPRCTL:-} ]] || hyprctl reload >/dev/null 2>&1 || true
+[[ -n ${HOLO_NO_HYPRCTL:-} ]] || { hyprctl reloadshaders >/dev/null 2>&1; hyprctl reload >/dev/null 2>&1; } || true
 echo "holo-border removed."

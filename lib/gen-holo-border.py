@@ -266,6 +266,15 @@ OL = cfg["outline"]
 outline = [12, 10, 18, round(255 * (OL["min_alpha"] + (OL["max_alpha"] - OL["min_alpha"]) * BRIGHTNESS))]
 
 os.makedirs(os.path.dirname(colors_json), exist_ok=True)
+
+# Border shader override: loops the 10 colors bands.repeat times (loaded by "holo" with hyprctl reloadshaders).
+shader_out = os.path.join(os.path.dirname(colors_json), "shaders", "gradient.glsl")
+if cfg["bands"]["repeat"] > 1:
+    os.makedirs(os.path.dirname(shader_out), exist_ok=True)
+    template = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "shaders", "gradient.glsl.in")).read()
+    open(shader_out, "w").write(template.replace("@REPEAT@", str(int(cfg["bands"]["repeat"]))))
+elif os.path.exists(shader_out):
+    os.remove(shader_out)
 with open(colors_json, "w") as f:
     json.dump({
         "normal": [hexa(v) for v, n in stops],
