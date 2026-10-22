@@ -305,7 +305,7 @@ hl.config({{
         colors = {{
 {lines}
         }},
-        angle = 45,
+        angle = {cfg["border"]["angle"]},
       }},
     }},
   }},
