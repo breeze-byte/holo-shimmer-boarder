@@ -13,9 +13,9 @@ like the shimmer on a holo trading card.
   flows into the next like holo foil. Each window switch picks a random start and direction, drops in a
   couple of thin white glints and doubles a band or two so the widths vary. It regenerates automatically
   when you switch themes.
-- **Shimmer.** The bands slowly fade into their neighbor's color (`shimmer.seconds_per_band`). This keeps
-  the daemon sending updates (about 8% of a core in Hyprland at 30/s); `shimmer.enabled = false` makes the
-  border static again.
+- **Neighbor fade.** On every window switch each band fades into its neighbor's color
+  (`shimmer.seconds_per_band`), then the border holds still and costs nothing until the next switch.
+  `shimmer.continuous = true` keeps it flowing instead (a few % of a core in Hyprland).
 - **Wallpaper brightness.** The generator scores how bright the wallpaper is (mean perceived lightness,
   0 = dark, 1 = bright). That score sets the border opacity (38% on a dark wallpaper up to 100% on a bright
   one), how hard the colors are pushed away from the wallpaper's lightness (contrast target 2.0 up to 4.0),

@@ -83,13 +83,14 @@ repeat = 3            # the colors loop this many times along the border (30 ban
                       # via a patched Hyprland border shader (Hyprland 0.56 only); 1 = no shader patch
 
 [shimmer]
-# Each band slowly fades into its neighbor's color, so the foil shimmers. This keeps the daemon
-# sending updates while a window is focused; set enabled = false for a static border that costs
-# nothing at idle.
+# On a window switch each band fades into its neighbor's color once, then the border holds still
+# (nothing is sent until the next switch). continuous = true keeps it flowing instead, which keeps
+# the daemon sending updates (a few % CPU in Hyprland).
 enabled = true
-seconds_per_band = 0.5    # seconds for a band to become the next color
+continuous = false
+seconds_per_band = 0.5    # seconds for each band to fade into the next color
 direction = -1             # 1 or -1: which way the bands flow; -1 with angle 315 = toward the top-right (right along the top, up the sides)
-updates_per_second = 30   # smoothness of the shimmer (it moves slowly, so 30 is plenty)
+updates_per_second = 30   # update rate when continuous (the switch fade uses fade_in.updates_per_second)
 
 [outline]
 # A dark keyline around the border, like a sticker's edge (replaces the tinted shadow).

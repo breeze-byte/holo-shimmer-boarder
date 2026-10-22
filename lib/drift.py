@@ -8,7 +8,8 @@ Hyprland's command socket for a fraction of a second:
 - bands:  colored stops taken in order around a hue ring of the theme colors (so each band flows
           into the next), with a few white glints and some doubled (wider) bands; the start,
           direction, glints and wide bands are re-randomized on every window switch
-- shimmer: the whole pattern slides slowly along the ring, so each band fades into its neighbor
+- shimmer: on a window switch each band fades into its neighbor's color once, then holds
+          (shimmer.continuous keeps it flowing instead)
 - opposites: the glints start as the opposite of the color before them, fading to white
 - shadow: a dark sticker-edge outline (or a faint tint from the gradient) fades in with the border
 - fade:   selecting a window fades the border from the inactive grey to the holo colors
@@ -87,7 +88,9 @@ def stop_colors(layout, pal, since_focus, now):
     ring_len = len(pal["ring"])
     shift = 0.0
     if SHIMMER["enabled"]:   # direction 1: each band takes the color of the one after it, so the pattern flows toward the gradient's start
-        shift = SHIMMER["direction"] * now / SHIMMER["seconds_per_band"] * ring_len / N_COLORS
+        # continuous: keep flowing; otherwise each band fades into its neighbor once per window switch, then holds
+        bands = now / SHIMMER["seconds_per_band"] if SHIMMER["continuous"] else ease(since_focus / SHIMMER["seconds_per_band"])
+        shift = SHIMMER["direction"] * bands * ring_len / N_COLORS
     k = ease(since_focus / OPP_FADE)
     out = []
     for kind, pos in layout:
@@ -179,8 +182,9 @@ def main():
         # 60 updates a second while a window switch is still fading, the shimmer rate after that;
         # with the shimmer off, sleep until the next focus event (waking now and then to check
         # for a new wallpaper or theme).
-        busy = time.monotonic() - focus_at < max(FADE_IN, OPP_FADE) + 0.1
-        next_tick += 1 / HZ if busy else 1 / SHIMMER["updates_per_second"] if SHIMMER["enabled"] else 1.0
+        busy = time.monotonic() - focus_at < max(FADE_IN, OPP_FADE, SHIMMER["seconds_per_band"]) + 0.1
+        flowing = SHIMMER["enabled"] and SHIMMER["continuous"]
+        next_tick += 1 / HZ if busy else 1 / SHIMMER["updates_per_second"] if flowing else 1.0
         if focus_evt.wait(max(0.0, next_tick - time.monotonic())):   # woken early by a focus change
             focus_evt.clear()
             next_tick = time.monotonic()
