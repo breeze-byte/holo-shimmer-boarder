@@ -85,7 +85,7 @@ repeat = 3            # the colors loop this many times along the border (30 ban
 # sending updates while a window is focused; set enabled = false for a static border that costs
 # nothing at idle.
 enabled = true
-seconds_per_band = 2.5    # seconds for a band to become the next color
+seconds_per_band = 1.5    # seconds for a band to become the next color
 direction = -1             # 1 or -1: which way the bands flow; -1 with angle 315 = toward the top-right (right along the top, up the sides)
 updates_per_second = 30   # smoothness of the shimmer (it moves slowly, so 30 is plenty)
 
