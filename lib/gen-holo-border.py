@@ -18,6 +18,7 @@ cfg = holo_config.load()
 theme = os.environ.get("HOLO_THEME") or os.path.expanduser("~/.local/state/omarchy/current/theme/colors.toml")
 colors_json = os.environ.get("HOLO_JSON") or os.path.expanduser("~/.local/state/holo/colors.json")
 out = os.environ.get("HOLO_OUT") or os.path.expanduser("~/.config/hypr/holo-border.lua")
+WALLPAPER = os.path.realpath(os.environ.get("HOLO_WALLPAPER") or os.path.expanduser("~/.local/state/omarchy/current/background"))
 
 ALPHA = cfg["border"]["alpha"]
 BORDER_SIZE = cfg["border"]["size"]
@@ -89,7 +90,7 @@ def style(h):
 def dominant_color():
     """Most common color of the wallpaper (falls back to the theme background)."""
     if AD["source"] == "wallpaper":
-        wall = os.path.realpath(os.path.expanduser("~/.local/state/omarchy/current/background"))
+        wall = WALLPAPER
         try:
             text = subprocess.run(
                 ["magick", wall, "-resize", "96x96!", "-colors", "8", "-depth", "8",
@@ -118,7 +119,7 @@ TR = cfg["transparency"]
 def wallpaper_pixels():
     """A 32x32 sample of the wallpaper as [r, g, b] rows; the theme background if unavailable."""
     if AD["source"] == "wallpaper":
-        wall = os.path.realpath(os.path.expanduser("~/.local/state/omarchy/current/background"))
+        wall = WALLPAPER
         try:
             text = subprocess.run(["magick", wall, "-resize", "32x32!", "-depth", "8", "txt:-"],
                                   capture_output=True, text=True, timeout=10).stdout
@@ -184,20 +185,37 @@ def contrast_score(colors):
     return total / (len(colors) * len(WALL))
 
 def legible(colors):
-    """Move the colored stops away from the wallpaper's lightness until their mean contrast
-    reaches the target (or max_shift is used up)."""
+    """Move the colored stops' lightness until their mean contrast with the wallpaper reaches the
+    target. Both directions are tried and the one that gets there with the smaller move wins
+    (or, if neither does, the one that gets closest); a move that doesn't improve contrast is
+    never taken. Lightness stays within [min_lightness, max_lightness], so the colors never sink
+    to near-black or wash out to white; on a bright wallpaper the outline makes up the rest."""
     if not LG["enabled"]:
         return colors
-    step = -0.02 if WALL_L > 0.5 else 0.02          # darker on a bright wallpaper, else lighter
     target = LG["target_dark"] + (LG["target_bright"] - LG["target_dark"]) * BRIGHTNESS
-    out, shift = colors, 0.0
-    while contrast_score(out) < target and abs(shift) < LG["max_shift"]:
-        shift += step
-        out = []
-        for v in colors:
-            L, C, H = rgb_to_oklch(v)
-            out.append(oklch_to_rgb(max(0.0, min(1.0, L + shift)), C, H))
-    return out
+    lch = [rgb_to_oklch(v) for v in colors]
+    lo, hi = (0.0 if light else LG["min_lightness"]), LG["max_lightness"]   # light themes keep their deep colors
+
+    def shifted(shift):
+        # darker stops at lo (or where the color already was, if below it); lighter stops at hi
+        new = lambda L: max(L + shift, min(L, lo)) if shift < 0 else min(L + shift, max(L, hi))
+        return [oklch_to_rgb(new(L), C, H) for L, C, H in lch]
+
+    best, best_score, best_shift = colors, contrast_score(colors), 0.0
+    if best_score >= target:
+        return colors
+    for step in (0.02, -0.02):
+        shift = 0.0
+        while abs(shift) < LG["max_shift"] - 1e-9:
+            shift += step
+            out = shifted(shift)
+            score = contrast_score(out)
+            reached, best_reached = score >= target, best_score >= target
+            if (reached and (not best_reached or abs(shift) < abs(best_shift))) or (not best_reached and score > best_score + 1e-3):
+                best, best_score, best_shift = out, score, shift
+            if reached:
+                break
+    return best
 
 COLOR_NAMES = ("blue", "cyan", "magenta", "yellow", "bright_blue")
 contrast_target = LG["target_dark"] + (LG["target_bright"] - LG["target_dark"]) * BRIGHTNESS

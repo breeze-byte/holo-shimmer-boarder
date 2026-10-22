@@ -15,7 +15,7 @@ DEFAULTS = {
     "shimmer": {"enabled": True, "seconds_per_band": 0.5, "direction": -1, "updates_per_second": 30},
     "outline": {"enabled": True, "range": 2, "render_power": 4, "min_alpha": 0.25, "max_alpha": 0.85},
     "transparency": {"enabled": True, "min_alpha": 0.38, "max_alpha": 1.0, "dark_l": 0.2, "bright_l": 0.8},
-    "legibility": {"enabled": True, "target_dark": 2.0, "target_bright": 4.0, "max_shift": 0.45},
+    "legibility": {"enabled": True, "target_dark": 2.0, "target_bright": 4.0, "max_shift": 0.45, "min_lightness": 0.55, "max_lightness": 0.9},
     "vividness": {"enabled": True, "max_boost": 0.8},
     "shadow": {"enabled": True, "range": 5, "render_power": 3, "alpha": 0.03},
     "fade_in": {"duration": 0.3, "native": False, "updates_per_second": 60},

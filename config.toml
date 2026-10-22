@@ -56,12 +56,14 @@ bright_l = 0.8        # ... and 1
 
 [legibility]
 # Scores the border's contrast against the wallpaper (1 = none, 21 = black on white). If the
-# colored stops average below the target, their lightness is moved away from the wallpaper's
-# (darker on a bright wallpaper, lighter on a dark one) until they reach it.
+# colored stops average below the target, their lightness is moved (lighter or darker, whichever
+# reaches it with the smaller move) until they reach it, staying within min/max_lightness.
 enabled = true
 target_dark = 2.0     # contrast the colored stops must reach on a dark wallpaper (score 0)
 target_bright = 4.0   # ... and on a bright one (score 1); in between it scales with the score
 max_shift = 0.45      # most the lightness (OKLCH L) may move
+min_lightness = 0.55  # dark themes: never darker than this (OKLCH L), so the foil stays colorful, not muddy
+max_lightness = 0.90  # never lighter than this, so it never washes out to white; the outline adds the rest
 
 [vividness]
 # Boosts the colored stops' chroma by up to max_boost on a bright wallpaper (scaled by the
