@@ -5,9 +5,12 @@ The gradient itself is static (no drift), so while nothing is happening this
 daemon sends Hyprland nothing at all. On a window switch it works over
 Hyprland's command socket for a fraction of a second:
 
-- bands:  7 stops (white, then 3 random theme colors with a silver between each, white), re-randomized on every window switch
-- opposites: the silvers start as the opposite of the color before them, fading to silver
-- shadow: a faint shadow tinted from the gradient fades in with the border and stays
+- bands:  colored stops taken in order around a hue ring of the theme colors (so each band flows
+          into the next), with a few white glints and some doubled (wider) bands; the start,
+          direction, glints and wide bands are re-randomized on every window switch
+- shimmer: the whole pattern slides slowly along the ring, so each band fades into its neighbor
+- opposites: the glints start as the opposite of the color before them, fading to white
+- shadow: a dark sticker-edge outline (or a faint tint from the gradient) fades in with the border
 - fade:   selecting a window fades the border from the inactive grey to the holo colors
 """
 import json, os, random, socket, subprocess, sys, threading, time
@@ -22,7 +25,9 @@ NATIVE_FADE = cfg["fade_in"]["native"]   # Hyprland does the grey -> holo fade; 
 INACTIVE = (0x59, 0x59, 0x59, 0xaa)   # Hyprland's inactive border (aa595959)
 SHADOW_ON, SHADOW_ALPHA = cfg["shadow"]["enabled"], cfg["shadow"]["alpha"]
 OPP_FADE = cfg["opposites"]["fade"]
-BAND_COLORS = cfg["bands"]["colors"]
+BANDS = cfg["bands"]
+SHIMMER = cfg["shimmer"]
+OUTLINE_ON = cfg["outline"]["enabled"]
 
 SOCK = f"{os.environ['XDG_RUNTIME_DIR']}/hypr/{os.environ['HYPRLAND_INSTANCE_SIGNATURE']}/.socket.sock"
 COLORS = os.path.expanduser("~/.local/state/holo/colors.json")   # written by gen-holo-border.py
@@ -34,7 +39,7 @@ send_lock = threading.Lock()    # border commands go out one at a time, in the o
 focus_evt = threading.Event()   # wakes the main loop the moment focus changes
 sent_at = 0.0                   # when we last sent a border command
 resend = threading.Event()      # Hyprland reloaded its config and reset the border: send it again
-state = {"colors": None, "angle": float(ANGLE)}   # latest border, shared with the event thread
+state = {"colors": None, "angle": float(ANGLE), "outline": "rgba(00000000)"}   # latest border, shared with the event thread
 
 def ease(x):
     """Smootherstep: 0 -> 1 with zero speed and acceleration at both ends."""
@@ -42,31 +47,56 @@ def ease(x):
     return x * x * x * (x * (x * 6 - 15) + 10)
 
 def load_colors():
-    """(normal, complement, names): stop lists as [r, g, b, a] rows, and each stop's name."""
+    """The palette from colors.json: the hue ring and its complements as [r, g, b, a] rows,
+    the white glint color, and the outline color."""
     d = json.load(open(COLORS))
-    parse = lambda cs: [[int(c[5:13][i:i + 2], 16) for i in (0, 2, 4, 6)] for c in cs]
-    return parse(d["normal"]), parse(d["complement"]), d["names"]
+    parse = lambda c: [int(c[5:13][i:i + 2], 16) for i in (0, 2, 4, 6)]
+    return {"ring": [parse(c) for c in d["ring"]], "comp": [parse(c) for c in d["ring_complement"]],
+            "white": parse(d["highlight"]), "outline": d["outline"]}
 
-def new_layout(names):
-    """Pick BAND_COLORS theme colors in a random order: white, color, silver, color, ..., white.
-    Each entry is (source stop, stop whose opposite it starts as or None)."""
-    colored = [i for i, n in enumerate(names) if n not in ("white", "silver")]
-    pick = random.sample(colored, min(BAND_COLORS, len(colored)))
-    white, silver = names.index("white"), names.index("silver")
-    layout = [(white, None)]
-    for n, c in enumerate(pick):
-        layout.append((c, None))
-        layout.append((silver, c) if n < len(pick) - 1 else (white, None))
+def new_layout(ring_len):
+    """A fresh random arrangement: a list of ("ring", offset) colored stops and ("glint", offset)
+    white glints, where offset is a position on the hue ring (in ring samples). The colored stops
+    step along the ring from a random start in a random direction, spanning it once; a few steps
+    are 0 (a doubled, wider band); glints sit between colored stops and remember their neighbor."""
+    n = max(2, BANDS["colors"])
+    step = ring_len / n * random.choice((1, -1))
+    wide = set(random.sample(range(1, n), min(BANDS["wide"], (n - 1) // 3)))   # most bands stay distinct
+    pos, offsets = random.uniform(0, ring_len), []
+    for i in range(n):
+        if i and i not in wide:
+            pos += step
+        offsets.append(pos)
+    layout = [("ring", p) for p in offsets]
+    for g in sorted(random.sample(range(1, n), min(BANDS["highlights"], n - 1)), reverse=True):
+        layout.insert(g, ("glint", offsets[g - 1]))
     return layout
 
-def with_opposites(layout, normal, comp, since_focus):
-    """Silver stops start as the opposite of the color before them, then fade back."""
+def sample(ring, pos):
+    """The ring's color at a fractional position, wrapping around."""
+    i, f = int(pos // 1), pos % 1
+    a, b = ring[i % len(ring)], ring[(i + 1) % len(ring)]
+    return [round(x + (y - x) * f) for x, y in zip(a, b)]
+
+def stop_colors(layout, pal, since_focus, now):
+    """Each stop's color now: colored stops slide along the ring (the shimmer); glints start as
+    the opposite of the color before them and fade to white."""
+    ring_len = len(pal["ring"])
+    shift = now / SHIMMER["seconds_per_band"] * ring_len / max(2, BANDS["colors"]) if SHIMMER["enabled"] else 0.0
     k = ease(since_focus / OPP_FADE)
-    return [[round(a + (b - a) * k) for a, b in zip(comp[opp], normal[src])] if opp is not None else list(normal[src])
-            for src, opp in layout]
+    out = []
+    for kind, pos in layout:
+        if kind == "ring":
+            out.append(sample(pal["ring"], pos + shift))
+        else:
+            out.append([round(a + (b - a) * k) for a, b in zip(sample(pal["comp"], pos + shift), pal["white"])])
+    return out
 
 def shadow_color(colors, angle, t):
-    """Shadow tint = the gradient's color at this angle (skipping the white stops), faded in by t."""
+    """Outline color, or a tint = the gradient's color at this angle (skipping the white stops), faded in by t."""
+    if OUTLINE_ON:
+        o = state["outline"]
+        return "%s%02x)" % (o[:-3], round(int(o[-3:-1], 16) * t))   # rgba(rrggbbAA): scale the AA
     tint = [c for c in colors if min(c[:3]) < 250] or colors
     pos = (angle % 360) / 360 * len(tint)
     a, b, f = tint[int(pos) % len(tint)], tint[(int(pos) + 1) % len(tint)], pos % 1
@@ -77,7 +107,7 @@ def eval_colors(colors, t, angle, shadow_t=None):
     """Border at fade position t (0 = inactive grey, 1 = holo colors) and the given angle;
     the shadow fades in with it (shadow_t overrides its position)."""
     sh = ""
-    if SHADOW_ON:
+    if SHADOW_ON or OUTLINE_ON:
         sh = ',decoration={shadow={color="%s"}}' % shadow_color(colors, angle, t if shadow_t is None else shadow_t)
     cl = ",".join('"rgba(%02x%02x%02x%02x)"' % tuple(round(g + (v - g) * t) for g, v in zip(INACTIVE, c)) for c in colors)
     return "eval hl.config({general={col={active_border={colors={%s},angle=%.1f}}}%s})" % (cl, angle % 360, sh)
@@ -133,17 +163,19 @@ def watch_focus():
 
 def main():
     threading.Thread(target=watch_focus, daemon=True).start()
-    (normal, comp, names), mtime = load_colors(), os.path.getmtime(COLORS)
-    layout, layout_for = new_layout(names), focus_at
+    pal, mtime = load_colors(), os.path.getmtime(COLORS)
+    state["outline"] = pal["outline"]
+    layout, layout_for = new_layout(len(pal["ring"])), focus_at
     wall, wall_at = wallpaper_stamp(), 0.0
     angle = float(ANGLE)
     last_cmd = None
     next_tick = time.monotonic()
     while True:
-        # 60 updates a second only while a window switch is still fading; otherwise sleep until
-        # the next focus event (waking now and then to check for a new wallpaper or theme).
+        # 60 updates a second while a window switch is still fading, the shimmer rate after that;
+        # with the shimmer off, sleep until the next focus event (waking now and then to check
+        # for a new wallpaper or theme).
         busy = time.monotonic() - focus_at < max(FADE_IN, OPP_FADE) + 0.1
-        next_tick += 1 / HZ if busy else 1.0
+        next_tick += 1 / HZ if busy else 1 / SHIMMER["updates_per_second"] if SHIMMER["enabled"] else 1.0
         if focus_evt.wait(max(0.0, next_tick - time.monotonic())):   # woken early by a focus change
             focus_evt.clear()
             next_tick = time.monotonic()
@@ -160,13 +192,14 @@ def main():
                     subprocess.run([sys.executable, GENERATOR], timeout=30)
             m = os.path.getmtime(COLORS)
             if m != mtime:
-                (normal, comp, names), mtime = load_colors(), m
-                layout = new_layout(names)
+                pal, mtime = load_colors(), m
+                state["outline"] = pal["outline"]
+                layout = new_layout(len(pal["ring"]))
             with send_lock:    # read focus_at and send in one step, so a stale update can't land after the grey drop
                 since = time.monotonic() - focus_at
                 if layout_for != focus_at:        # new window: a fresh random arrangement (hidden by the fade-in)
-                    layout, layout_for = new_layout(names), focus_at
-                colors = with_opposites(layout, normal, comp, since)
+                    layout, layout_for = new_layout(len(pal["ring"])), focus_at
+                colors = stop_colors(layout, pal, since, time.monotonic())
                 state["colors"], state["angle"] = colors, angle
                 cmd = eval_colors(colors, 1.0 if NATIVE_FADE else ease(since / FADE_IN), angle)
                 if cmd != last_cmd:               # nothing visibly changed: don't make Hyprland redo the border

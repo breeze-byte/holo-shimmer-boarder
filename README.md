@@ -8,9 +8,14 @@ like the shimmer on a holo trading card.
 
 ## What it does
 
-- **Theme colors.** The gradient is built from three of your current Omarchy theme's blue, cyan, magenta,
-  yellow and bright blue, picked and ordered at random on every window switch, with a silver between each
-  and white at both ends. It regenerates automatically when you switch themes.
+- **Theme colors, in hue order.** Your current Omarchy theme's blue, cyan, magenta, yellow and bright blue
+  are laid out around the color wheel, with a blended color between each pair of neighbors, so every band
+  flows into the next like holo foil. Each window switch picks a random start and direction, drops in a
+  couple of thin white glints and doubles a band or two so the widths vary. It regenerates automatically
+  when you switch themes.
+- **Shimmer.** The bands slowly fade into their neighbor's color (`shimmer.seconds_per_band`). This keeps
+  the daemon sending updates (about 8% of a core in Hyprland at 30/s); `shimmer.enabled = false` makes the
+  border static again.
 - **Wallpaper brightness.** The generator scores how bright the wallpaper is (mean perceived lightness,
   0 = dark, 1 = bright). That score sets the border opacity (38% on a dark wallpaper up to 100% on a bright
   one), how hard the colors are pushed away from the wallpaper's lightness (contrast target 2.0 up to 4.0),
@@ -20,13 +25,14 @@ like the shimmer on a holo trading card.
 - **Adapts to what is behind it.** Colors close to the wallpaper's dominant color get more chroma and move
   lighter or darker away from it. If the wallpaper changes, the daemon re-samples it. (Needs ImageMagick;
   without it the theme background color is used.)
-- **Static gradient.** The angle is fixed (`border.angle`), so while nothing is happening the border costs nothing.
+- **Fixed angle.** The gradient angle is fixed (`border.angle`).
 - **Fade in.** Selecting a window fades its border from the inactive grey to the gradient. By default the
   daemon does the fade; with `fade_in.native = true` Hyprland's own border animation does it, which avoids the
   one-or-two-frame flash of full color Hyprland paints before the daemon can react.
-- **Opposites.** The silver stops start as the color directly across the color wheel from the color before them
-  and fade back to silver.
-- **Shadow.** The focused window gets a faint shadow tinted from the gradient, fading in with the border.
+- **Opposites.** The white glints start as the color directly across the color wheel from the color before them
+  and fade to white.
+- **Sticker edge.** A thin dark outline around the focused window, stronger on bright wallpapers
+  (`outline`). With it off, the window gets a faint shadow tinted from the gradient instead.
 - **On/off toggle.** One command or keybind; off restores Omarchy's normal border.
 
 ## Requirements
@@ -77,7 +83,9 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 | `adaptive.source`, `high` / `low`, `max_boost`, `lightness_push` | what to compare against (`wallpaper` or `theme`), the distance range, and how strong the boost is |
 | `fade_in.updates_per_second` | update rate while a fade runs (match the screen refresh); nothing is sent otherwise |
 | `fade_in.duration` / `native` | seconds for the grey-to-gradient fade, and whether Hyprland (`true`) or the daemon (`false`) does it |
-| `bands.colors` | how many theme colors are in the gradient (of 5) |
+| `bands.colors`, `highlights`, `wide` | colored stops, white glints, and how many bands may be doubled (keep colors + highlights at 10 or less) |
+| `shimmer.enabled`, `seconds_per_band`, `updates_per_second` | the band-to-band fade, its speed, and its update rate |
+| `outline.enabled`, `range`, `min_alpha` / `max_alpha` | the dark sticker edge, its width, and its opacity on dark / bright wallpapers |
 | `opposites.fade` | seconds for the silvers to fade back from their opposite color |
 | `shadow.range` / `alpha` / `render_power` | size, opacity and softness of the focused-window shadow |
 | `transparency.min_alpha` / `max_alpha` | border opacity on a dark and a bright wallpaper |

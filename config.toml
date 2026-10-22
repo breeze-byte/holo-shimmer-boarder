@@ -70,4 +70,26 @@ enabled = true
 max_boost = 0.8       # +80% chroma at score 1
 
 [bands]
-colors = 3            # theme colors in the gradient (of 5), chosen and ordered at random on every window switch
+# The theme colors are laid out around the color wheel (with a blended color between each pair
+# of neighbors) so every band flows into the next. Each window switch picks a random start and
+# direction. Keep colors + highlights at 10 or less (Hyprland's gradient limit).
+colors = 7            # colored stops in the gradient
+highlights = 2        # thin white glints, dropped in at random spots
+wide = 2              # up to this many bands are doubled at random, so the widths vary
+
+[shimmer]
+# Each band slowly fades into its neighbor's color, so the foil shimmers. This keeps the daemon
+# sending updates while a window is focused; set enabled = false for a static border that costs
+# nothing at idle.
+enabled = true
+seconds_per_band = 2.5    # seconds for a band to become the next color
+updates_per_second = 30   # smoothness of the shimmer (it moves slowly, so 30 is plenty)
+
+[outline]
+# A dark keyline around the border, like a sticker's edge (replaces the tinted shadow).
+# Its opacity follows the wallpaper brightness score: barely there on a dark wallpaper.
+enabled = true
+range = 2             # width in px
+render_power = 4      # higher = crisper edge
+min_alpha = 0.25      # opacity on a dark wallpaper
+max_alpha = 0.85      # ... and on a bright one
