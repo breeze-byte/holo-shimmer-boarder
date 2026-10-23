@@ -7,15 +7,15 @@
 //
 // Switch sweep: when the 10th stop is a control stop (black, i.e. OkLab L = 0) only the first 9
 // are colors, and the control stop's alpha byte says what to draw: 0 = no sweep, otherwise
-// 1 + mode * 63 + step, where step 0..62 is the position from start to end and mode's bit 0 picks
-// the bottom edge (else the top) and bit 1 runs right to left (else left to right).
-// The sweep is one white bar that runs along that edge, fading from HOLO_SWEEP_OPACITY to 0 as it goes.
+// 1 + mode * 63 + step, where step 0..62 is the position from start to end, mode's bit 0 runs the
+// sweep along the left and right sides (else the top and bottom) and bit 1 runs it backward (right
+// to left, or down; else left to right, or up). The sweep is a white bar on each of the two edges,
+// moving together and fading from HOLO_SWEEP_OPACITY to 0 as they go.
 #define HOLO_REPEAT @REPEAT@
 #define HOLO_MIN_STOPS 10
 #define HOLO_BAR_WIDTH @BAR_WIDTH@   // bar length, as a fraction of the edge
 #define HOLO_BAR_SOFT 0.01           // edge softening, so the bar doesn't alias
-#define HOLO_SWEEP_DIST @SWEEP_DIST@ // how far along the edge the bar travels: 1 = to the right corner
-#define HOLO_SWEEP_BOTH @SWEEP_BOTH@   // 1: the bar runs along the top and bottom edges together (mode bit 0 ignored)
+#define HOLO_SWEEP_DIST @SWEEP_DIST@ // how far along the edge the bars travel: 1 = to the far corner
 #define HOLO_SWEEP_OPACITY @SWEEP_OPACITY@ // the bar's white opacity
 
 #ifndef ALLOW_INCLUDES
@@ -55,13 +55,14 @@ vec4 holoColor(vec4 gradient[10], int gradientLength, float along) {
     return gradient[hi] * f + gradient[lo] * (1.0 - f);
 }
 
-// holo: where a border pixel sits on the sweep's edge (the top, or the bottom if bottom, or the
-// nearer of the two with HOLO_SWEEP_BOTH), 0 at the left corner to 1 at the right; -1 on the other
-// sides. uv has y = 0 at the top.
-float holoPath(vec2 uv, bool bottom) {
-    float d  = HOLO_SWEEP_BOTH == 1 ? min(uv.y, 1.0 - uv.y) : bottom ? 1.0 - uv.y : uv.y;   // distance from the sweep's edge
-    float dl = uv.x, dr = 1.0 - uv.x, dfar = 1.0 - d;
-    return d <= dl && d <= dr && d < dfar ? uv.x : -1.0;
+// holo: where a border pixel sits on the sweep's edges: for the top and bottom, 0 at the left
+// corner to 1 at the right; for the sides (sides), 0 at the bottom to 1 at the top; -1 on the
+// other two edges. uv has y = 0 at the top.
+float holoPath(vec2 uv, bool sides) {
+    float dx = min(uv.x, 1.0 - uv.x), dy = min(uv.y, 1.0 - uv.y);   // distance to the sides / to the top or bottom
+    if (sides)
+        return dx < dy ? 1.0 - uv.y : -1.0;
+    return dy <= dx ? uv.x : -1.0;
 }
 
 // holo: the sweep bar drawn over the border color c (OkLab).
@@ -74,7 +75,7 @@ vec4 holoSweep(vec4 c, vec2 uv, vec4 gradient[10], int gradientLength) {
     float pos   = holoPath(uv, mode == 1 || mode == 3);
     if (pos < 0.0)
         return c;
-    if (mode >= 2)   // right to left
+    if (mode >= 2)   // backward: right to left, or down
         pos = 1.0 - pos;
     float head = mix(-0.5 * HOLO_BAR_WIDTH, HOLO_SWEEP_DIST, sweep);
     float k    = HOLO_SWEEP_OPACITY * (1.0 - sweep) * holoBar(pos, head);   // fades evenly to 0 over the run
