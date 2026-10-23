@@ -16,14 +16,14 @@ like the shimmer on a holo trading card.
 - **Neighbor fade.** Each band keeps fading into its top/right neighbor's color, one band every
   `shimmer.seconds_per_band` (2 s), costing about 5% of one core in Hyprland at 10 updates a second. `shimmer.continuous = false`
   fades once per window switch instead, then holds still and costs nothing until the next switch.
-- **Sweep.** When you switch windows, 0.02 s later a bar of two thin lines (the leading one white, the
-  other 90% white) runs across the top and bottom of the new window's border, away from the window you
-  came from and then back at half the speed (`sweep.back`, `back_speed`). When you switch workspaces it
-  runs up the sides and back down instead (`sweep.workspace`). Each pass fades in and out; the first
-  takes `sweep.duration` (0.99 s) and the way back twice that, so it's done about 3 s after the switch.
-  Its peak opacity follows the wallpaper (70% on a dark one, up to 100% on a bright one).
-  `sweep.periodic` adds random repeats every 5-30 s. The holo shader draws it; the daemon only sends its
-  position in the 10th gradient stop, so the bands use 9 colors.
+- **Sweep.** When you switch windows, 0.02 s later a thin white bar runs across the top and bottom of
+  the new window's border, away from the window you came from and then back at half the speed
+  (`sweep.back`, `back_speed`). When you switch workspaces it runs up the sides and back down instead
+  (`sweep.workspace`). Each pass fades in and out; the first takes `sweep.duration` (0.99 s) and the way
+  back twice that, so it's done about 3 s after the switch. Its peak opacity follows the wallpaper (70%
+  on a dark one, up to 100% on a bright one). `sweep.periodic` adds random repeats every 5-30 s. The
+  holo shader draws it; the daemon only sends its position in the 10th gradient stop, so the bands use 9
+  colors.
 - **Wallpaper brightness.** The generator scores how bright the wallpaper is (mean perceived lightness,
   0 = dark, 1 = bright). That score sets the border opacity (69% on a dark wallpaper up to 100% on a bright
   one), how hard the colors are pushed away from the wallpaper's lightness (contrast target 2.0 up to 4.0),
