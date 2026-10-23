@@ -18,10 +18,10 @@ like the shimmer on a holo trading card.
   fades once per window switch instead, then holds still and costs nothing until the next switch.
 - **Sweep.** When focus moves to another window, right away a bar of two thin lines (the leading one
   white, the other 90% white) runs across the top and bottom of its border, moving away from the window
-  you came from, fading in and then out over `sweep.duration` (1.65 s). Its peak opacity follows the
-  wallpaper (70% on a dark one, up to 100% on a bright one). `sweep.periodic` adds random repeats every
-  5-30 s. The holo shader draws it; the daemon only sends its position in the 10th gradient stop, so the
-  bands use 9 colors.
+  you came from, then up the two sides and back down (`sweep.then`), each pass fading in and then out
+  over `sweep.duration` (1.38 s). Its peak opacity follows the wallpaper (70% on a dark one, up to 100%
+  on a bright one). `sweep.periodic` adds random repeats every 5-30 s. The holo shader draws it; the
+  daemon only sends its position in the 10th gradient stop, so the bands use 9 colors.
 - **Wallpaper brightness.** The generator scores how bright the wallpaper is (mean perceived lightness,
   0 = dark, 1 = bright). That score sets the border opacity (69% on a dark wallpaper up to 100% on a bright
   one), how hard the colors are pushed away from the wallpaper's lightness (contrast target 2.0 up to 4.0),
