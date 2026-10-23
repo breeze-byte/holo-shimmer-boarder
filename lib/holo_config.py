@@ -12,7 +12,7 @@ DEFAULTS = {
     },
     "opposites": {"fade": 1.5},
     "bands": {"colors": 10, "highlights": 0, "wide": 0, "repeat": 3},
-    "shimmer": {"enabled": True, "seconds_per_band": 2.0, "direction": -1, "continuous": True, "updates_per_second": 10},
+    "shimmer": {"enabled": True, "seconds_per_band": 2.0, "direction": -1, "continuous": True, "updates_per_second": 10, "white_chance": 0.1},
     "sweep": {"enabled": True, "on_switch": True, "interval_min": 5.0, "interval_max": 30.0, "duration": 1.33, "width": 0.075, "lines": 2, "line_gap": 0.5, "line_grey": 0.9, "distance": 1.0, "opacity_dark": 0.7, "opacity_bright": 1.0, "fade_in": 0.25, "sides": False},
     "outline": {"enabled": False, "range": 2, "render_power": 4, "min_alpha": 0.25, "max_alpha": 0.85},
     "transparency": {"enabled": True, "min_alpha": 0.69, "max_alpha": 1.0, "solid_above": 0.85, "dark_l": 0.2, "bright_l": 0.8},

@@ -93,6 +93,7 @@ continuous = true
 seconds_per_band = 2.0    # seconds for each band to fade into the next color
 direction = -1             # 1 or -1: which way the bands flow; -1 with angle 315 = toward the top-right (right along the top, up the sides)
 updates_per_second = 10   # update rate when continuous (each update is one redraw; the switch fade uses fade_in.updates_per_second)
+white_chance = 0.1        # continuous only: each step, the chance a band fades to white instead of into its neighbor
 
 [sweep]
 # When you switch windows a white bar runs along the new window's border once its

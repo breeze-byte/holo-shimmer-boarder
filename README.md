@@ -90,7 +90,7 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 | `fade_in.updates_per_second` | update rate while a fade runs (match the screen refresh); nothing is sent otherwise |
 | `fade_in.duration` / `native` | seconds for the grey-to-gradient fade, and whether Hyprland (`true`) or the daemon (`false`) does it |
 | `bands.colors`, `highlights`, `wide` | colored stops, white glints, and how many bands may be doubled (keep colors + highlights at 10 or less) |
-| `shimmer.enabled`, `seconds_per_band`, `updates_per_second` | the band-to-band fade, its speed, and its update rate |
+| `shimmer.enabled`, `seconds_per_band`, `updates_per_second`, `white_chance` | the band-to-band fade, its speed, its update rate, and the chance each step that a band fades to white instead |
 | `sweep.enabled`, `on_switch`, `interval_min` / `interval_max`, `duration`, `width`, `lines` / `line_gap` / `line_grey`, `distance`, `opacity_dark` / `opacity_bright`, `fade_in`, `sides` | the sweep: whether one runs after each switch's fade-in, the range of seconds between sweeps, how long one runs, its bar length, how many lines it's made of, the gap between them and how grey the outer ones are, how far it travels (fractions of the edge), its peak white opacity on a dark and a bright wallpaper, how much of the run it spends fading in, and whether it can run along the sides |
 | `outline.enabled`, `range`, `min_alpha` / `max_alpha` | the dark sticker edge, its width, and its opacity on dark / bright wallpapers |
 | `opposites.fade` | seconds for the silvers to fade back from their opposite color |

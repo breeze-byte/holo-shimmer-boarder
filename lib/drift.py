@@ -103,12 +103,28 @@ def stop_colors(layout, pal, since_focus, now):
         shift = SHIMMER["direction"] * bands * ring_len / N_COLORS
     k = ease(since_focus / OPP_FADE)
     out = []
-    for kind, pos in layout:
+    for i, (kind, pos) in enumerate(layout):
         if kind == "ring":
-            out.append(sample(pal["ring"], pos + shift))
+            c = sample(pal["ring"], pos + shift)
+            w = white_amount(i, now) if SHIMMER["enabled"] and SHIMMER["continuous"] else 0.0
+            out.append([round(a + (b - a) * w) for a, b in zip(c, pal["white"])] if w else c)
         else:
             out.append([round(a + (b - a) * k) for a, b in zip(sample(pal["comp"], pos + shift), pal["white"])])
     return out
+
+WHITE_SEED = random.getrandbits(32)
+
+def white_amount(i, now):
+    """How white stop i is now (0..1). Each step of the continuous fade (seconds_per_band), each stop
+    has a white_chance of fading to white instead of into its neighbor's color; the step after, it
+    fades from white back into the colors."""
+    chance = SHIMMER["white_chance"]
+    if chance <= 0:
+        return 0.0
+    bands = now / SHIMMER["seconds_per_band"]
+    step, f = int(bands // 1), ease(bands % 1)
+    white = lambda s: random.Random(hash((WHITE_SEED, i, s))).random() < chance
+    return max(f if white(step) else 0.0, 1.0 - f if white(step - 1) else 0.0)
 
 def next_sweep(after, now):
     """A new random sweep: (start time, mode). It starts interval_min..interval_max seconds after
