@@ -114,7 +114,7 @@ interval_min = 5.0    # shortest time from one sweep's start to the next, in sec
 interval_max = 30.0   # longest
 delay = 0.02          # seconds after a switch before the sweep starts
 duration = 0.99       # seconds for the run out, at a steady pace (the drift back adds bounce * duration / back_speed)
-bounce = 0.15         # at the far end, drift back this far (fraction of the edge) while fading out (0 = fade out on the way)
+bounce = 0.0          # at the far end, drift back this far (fraction of the edge) while fading out (0 = fade out on the way)
 back_speed = 0.5      # the drift back (and a full pass back) runs at this fraction of the speed
 back = false          # window switch: also run a full pass back the way it came
 workspace = ["up", "down"]   # workspace switch: passes up / down the two sides instead ([] = same as a window switch)
