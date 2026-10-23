@@ -281,7 +281,16 @@ def hue_ring(colors):
         ring.append(oklch_to_rgb(L, math.hypot(A, B), math.degrees(math.atan2(B, A)) % 360))
     return ring
 
-ring = hue_ring(list(final.values()))
+# The holographic sticker the look came from (console.typesafe.ai): its foil sampled by hue, a pastel
+# rainbow heavy on lavender and violet. colors.palette = "sticker" builds the bands from these instead
+# of the theme's colors. They still get the wallpaper contrast step, but not the vividness boost,
+# which would turn the pastels neon.
+STICKER = ["#f2aed0", "#f8c5a9", "#f1dca3", "#8fe8cb", "#88e0db",   # pink, peach, butter, mint, aqua
+           "#98bde5", "#9faee3", "#ada2e8", "#c69ee5", "#e4a4e0"]   # sky, periwinkle, lavender, violet, orchid
+if cfg["colors"]["palette"] == "sticker":
+    ring = hue_ring(legible([rgb(h) for h in STICKER]))
+else:
+    ring = hue_ring(list(final.values()))
 OL = cfg["outline"]
 # Sticker edge: a dark keyline, stronger on a bright wallpaper where the pale colors need it most.
 outline = [12, 10, 18, round(255 * (OL["min_alpha"] + (OL["max_alpha"] - OL["min_alpha"]) * BRIGHTNESS))]

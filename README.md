@@ -84,6 +84,7 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 
 | Setting | Effect |
 |---|---|
+| `colors.palette` | `theme` (the Omarchy theme's colors) or `sticker` (the holo sticker's pastel rainbow, the same on every theme) |
 | `border.size`, `border.angle`, `border.alpha` | width in px, opacity (used when `transparency.enabled` is off) |
 | `colors.chroma_max` / `chroma_min` | how vivid the colors can be |
 | `colors.lightness_min` / `lightness_max` | how pale or deep the colors can be |

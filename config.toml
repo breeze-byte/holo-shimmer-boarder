@@ -7,6 +7,7 @@ size = 3          # border width in px (Omarchy's default is 2)
 alpha = 0.9       # border opacity, 1.0 = solid
 
 [colors]
+palette = "theme"     # "theme": the Omarchy theme's colors; "sticker": the holo sticker's pastel rainbow (same on every theme)
 raw = true            # test: use the theme's exact colors (no pastel, clamp or wallpaper adjust)
 # Every theme color is clamped into this OKLCH band, so no theme can be harsher
 # than the others. Raise chroma_max for more vivid colors, lightness_min for paler.
