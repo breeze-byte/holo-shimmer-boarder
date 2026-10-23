@@ -31,4 +31,7 @@ else
 fi
 
 [[ -n ${HOLO_NO_HYPRCTL:-} ]] || { hyprctl reloadshaders >/dev/null 2>&1; hyprctl reload >/dev/null 2>&1; } || true
+# Every window's own active border (set by holo while on) back to the configured one, now that the
+# config is final.
+[[ -n ${HOLO_NO_HYPRCTL:-} ]] || python3 "$(dirname "$0")/lib/reset-borders.py" || true
 echo "holo-border removed."

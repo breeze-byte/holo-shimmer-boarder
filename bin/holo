@@ -38,6 +38,8 @@ shaders() {
     hyprctl reloadshaders >/dev/null
   fi
 }
+# While on, holo sets each window's own active border; put them all back to the configured one.
+reset_borders() { [[ -n $HOLO_NO_HYPRCTL ]] || python3 "$DIR/reset-borders.py"; }
 notify() { [[ -n $HOLO_NO_HYPRCTL ]] || notify-send -u low "Holo border" "$1" 2>/dev/null; }
 
 case "${1:-toggle}" in
@@ -55,6 +57,7 @@ case "${1:-toggle}" in
     size=$(python3 -c "import sys; sys.path.insert(0, '$DIR'); import holo_config; print(holo_config.load()['border']['size'])" 2>/dev/null || echo 2)
     printf -- '-- holo border is off (run: holo on); keeps the configured width\nhl.config({ general = { border_size = %s } })\n' "$size" >"$OUT"
     reload
+    reset_borders
     notify "Off"
     ;;
   toggle)
@@ -70,8 +73,12 @@ case "${1:-toggle}" in
       start_daemon
     fi
     ;;
-  refresh)   # after a theme change: regenerate the colors if enabled
-    enabled && python3 "$DIR/gen-holo-border.py" && reload && shaders
+  refresh)   # after a theme change: regenerate the colors if enabled; if off, follow the new theme's border
+    if enabled; then
+      python3 "$DIR/gen-holo-border.py" && reload && shaders
+    else
+      reset_borders
+    fi
     ;;
   start)     # at login: make sure the daemon runs if enabled
     enabled && { shaders; start_daemon; }
