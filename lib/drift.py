@@ -48,7 +48,6 @@ COLORS = os.path.expanduser("~/.local/state/holo/colors.json")   # written by ge
 WALLPAPER = os.path.expanduser("~/.local/state/omarchy/current/background")
 GENERATOR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gen-holo-border.py")
 WALLPAPER_EVERY = 3.0   # seconds between wallpaper-change checks
-SHADOW_EVERY = 5.0      # seconds between shadow-tint updates while the colors drift
 focus_at = -1e9   # when focus last changed (set by the event thread)
 send_lock = threading.Lock()    # border commands go out one at a time, in the order they were decided
 focus_evt = threading.Event()   # wakes the main loop the moment focus changes
@@ -199,19 +198,20 @@ def shadow_color(colors, angle, t):
     rgb = [round(x + (y - x) * f) for x, y in zip(a[:3], b[:3])]
     return "rgba(%02x%02x%02x%02x)" % (*rgb, round(255 * SHADOW_ALPHA * t))
 
-def border_cmd(colors, t, angle):
-    """Border of the focused window at fade position t (0 = inactive grey, 1 = holo colors) and the
-    given angle, set as that window's own active_border_color. Much cheaper for Hyprland than
+def border_cmd(colors, t, angle, addr=None, sweep=None):
+    """Border of the focused window (or addr) at fade position t (0 = inactive grey, 1 = holo colors)
+    and the given angle, set as that window's own active_border_color. Much cheaper for Hyprland than
     changing the config (hl.config re-applies the whole config: ~6x the CPU per update)."""
-    if not state["addr"]:
+    addr = addr or state["addr"]
+    if not addr:
         return None
     cl = " ".join("rgba(%02x%02x%02x%02x)" % tuple(round(g + (v - g) * t) for g, v in zip(INACTIVE, c)) for c in colors)
     if SWEEP_ON:
-        cl += " rgba(%02x%02x%02x%02x)" % tuple(state["sweep"])
+        cl += " rgba(%02x%02x%02x%02x)" % tuple(state["sweep"] if sweep is None else sweep)
     # Hyprland 0.56's set_prop drops the first color of a gradient value (checked: "red green blue"
     # comes back as "green blue"), so lead with a throwaway one.
     return ('dispatch hl.dsp.window.set_prop({ prop = "active_border_color", value = "rgba(00000000) %s %ddeg", window = "address:%s" })'
-            % (cl, round(angle) % 360, state["addr"]))
+            % (cl, round(angle) % 360, addr))
 
 def shadow_cmd(colors, angle, t):
     """The focused-window shadow color (it's global config, so it's sent sparingly), or None."""
@@ -276,11 +276,19 @@ def watch_focus():
                         mode = switch_sweep_mode(state["addr"], addr) if SWEEP_ON and SWEEP["on_switch"] else ((0, PASS_SECONDS),)
                         with send_lock:
                             focus_at = time.monotonic()
+                            prev = state["addr"]
                             state["addr"], state["switch_mode"] = addr, mode
-                            # Hyprland has already painted the new window in full holo; drop to
-                            # grey right away so the fade starts from grey, not from a flash.
-                            if state["colors"] and not NATIVE_FADE and state["addr"]:
-                                send(border_cmd(state["colors"], 0.0, state["angle"]))
+                            if state["colors"] and not NATIVE_FADE:
+                                # Hyprland paints a newly focused window with the border it last had
+                                # when focused; drop it to grey right away so the fade starts from grey.
+                                if addr:
+                                    send(border_cmd(state["colors"], 0.0, state["angle"]))
+                                # And park the window that just lost focus at grey (unseen while it's
+                                # unfocused), so next time it's focused that first frame is already
+                                # grey instead of a flash of its old colors (the drop above lands a
+                                # frame or two late).
+                                if prev and prev != addr:
+                                    send(border_cmd(state["colors"], 0.0, state["angle"], prev, [0, 0, 0, 0]))
                         focus_evt.set()
         except Exception:
             time.sleep(1)
@@ -293,7 +301,6 @@ def main():
     wall, wall_at = wallpaper_stamp(), 0.0
     angle = float(ANGLE)
     last_cmd = last_shadow = None
-    shadow_at = 0.0
     try:   # the window focused at startup (later ones come from the event thread)
         state["addr"] = json.loads(query("j/activewindow")).get("address") or None
     except (OSError, ValueError):
@@ -350,12 +357,13 @@ def main():
                 if cmd and cmd != last_cmd:       # nothing visibly changed: don't make Hyprland redo the border
                     send(cmd)
                     last_cmd = cmd
-                # The shadow is global config, so only update it while a switch fades in, after a
-                # reload, or every SHADOW_EVERY seconds as the colors drift.
+                # The shadow is global config (hl.config re-applies the whole config: costly), and at a
+                # few % opacity its tint barely shows, so only update it while a switch fades in or
+                # after a reload, not as the colors drift.
                 sh = shadow_cmd(colors, angle, t_fade)
-                if sh and sh != last_shadow and (since < FADE_IN + 0.1 or last_shadow is None or now - shadow_at > SHADOW_EVERY):
+                if sh and sh != last_shadow and (since < FADE_IN + 0.1 or last_shadow is None):
                     send(sh)
-                    last_shadow, shadow_at = sh, now
+                    last_shadow = sh
         except Exception:
             time.sleep(1)
 
