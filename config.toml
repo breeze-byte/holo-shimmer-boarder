@@ -116,7 +116,7 @@ duration = 0.99       # seconds for one pass, at a steady pace (the way back tak
 back = true           # window switch: after running away from the previous window, come back the way it came
 back_speed = 0.5      # the way back runs at this fraction of the speed (0.5 = half as fast)
 workspace = ["up", "down"]   # workspace switch: passes up / down the two sides instead ([] = same as a window switch)
-width = 0.044         # bar length (its lines and gaps together), as a fraction of the edge
+width = 0.088         # bar length (its lines and gaps together), as a fraction of the edge
 lines = 1             # the bar is this many parallel lines; the leading one is white
 line_gap = 0.5        # gap between the lines, as a fraction of one line's width
 line_grey = 0.9       # the other lines' lightness (1 = white like the leading one, lower = greyer)
