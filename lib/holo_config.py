@@ -8,7 +8,7 @@ DEFAULTS = {
     "colors": {
         "lightness_min": 0.84, "lightness_max": 0.92,
         "chroma_min": 0.075, "chroma_max": 0.13,
-        "grey_chroma": 0.012, "raw": False, "palette": "sticker", "contrast": 2.109375,
+        "grey_chroma": 0.012, "raw": False, "palette": "sticker", "sticker_boost": 0.4, "contrast": 2.109375,
     },
     "opposites": {"fade": 1.5},
     "bands": {"colors": 10, "highlights": 0, "wide": 0, "repeat": 3},

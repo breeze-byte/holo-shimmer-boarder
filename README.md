@@ -11,7 +11,8 @@ like the shimmer on a holo trading card.
 - **Sticker colors, in hue order.** Ten colors sampled from a holographic sticker's foil (pink, peach,
   butter, mint, aqua, sky, periwinkle, lavender, violet, orchid) are laid out around the color wheel,
   with a blended color between each pair of neighbors, so every band flows into the next like holo foil.
-  They're the same on every theme; only the wallpaper adjusts them (see below). `colors.palette =
+  They're the same on every theme and keep their own lightness; on a brighter wallpaper they get a
+  little more saturation (`colors.sticker_boost`) so they don't look washed out. `colors.palette =
   "theme"` uses your Omarchy theme's blue, cyan, magenta, yellow and bright blue instead, regenerated
   whenever you switch themes. Each window switch picks a random start.
 - **Neighbor fade.** Each band keeps fading into its top/right neighbor's color, one band every
@@ -86,6 +87,7 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 
 | Setting | Effect |
 |---|---|
+| `colors.sticker_boost` | sticker palette: extra saturation on a bright wallpaper, scaled by its brightness |
 | `colors.palette` | `sticker` (default: the holo sticker's pastel rainbow, the same on every theme) or `theme` (the Omarchy theme's colors) |
 | `border.size`, `border.angle`, `border.alpha` | width in px, opacity (used when `transparency.enabled` is off) |
 | `colors.chroma_max` / `chroma_min` | how vivid the colors can be |

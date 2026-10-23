@@ -225,10 +225,10 @@ contrast_target = LG["target_dark"] + (LG["target_bright"] - LG["target_dark"]) 
 contrast_before = contrast_score([blue, cyan, magenta, yellow, bright_blue])
 blue, cyan, magenta, yellow, bright_blue = legible([blue, cyan, magenta, yellow, bright_blue])
 
-def vivid_up(colors):
+def vivid_up(colors, max_boost=None):
     """More chroma on bright wallpapers (none on dark ones), so the darker colors the contrast
     step needs still look rich instead of muddy. Stays inside the sRGB gamut."""
-    boost = 1 + cfg["vividness"]["max_boost"] * BRIGHTNESS if cfg["vividness"]["enabled"] else 1
+    boost = 1 + (cfg["vividness"]["max_boost"] if max_boost is None else max_boost) * BRIGHTNESS if cfg["vividness"]["enabled"] else 1
     out = []
     for v in colors:
         L, C, H = rgb_to_oklch(v)
@@ -283,12 +283,13 @@ def hue_ring(colors):
 
 # The holographic sticker the look came from (console.typesafe.ai): its foil sampled by hue, a pastel
 # rainbow heavy on lavender and violet. colors.palette = "sticker" builds the bands from these instead
-# of the theme's colors. They still get the wallpaper contrast step, but not the vividness boost,
-# which would turn the pastels neon.
+# of the theme's colors. They keep their own lightness (the contrast step's lightening washed them out on
+# bright wallpapers, for little gain), and get a gentler saturation boost on bright wallpapers
+# (colors.sticker_boost; the theme colors' vividness.max_boost turns these pastels neon).
 STICKER = ["#f2aed0", "#f8c5a9", "#f1dca3", "#8fe8cb", "#88e0db",   # pink, peach, butter, mint, aqua
            "#98bde5", "#9faee3", "#ada2e8", "#c69ee5", "#e4a4e0"]   # sky, periwinkle, lavender, violet, orchid
 if cfg["colors"]["palette"] == "sticker":
-    ring = hue_ring(legible([rgb(h) for h in STICKER]))
+    ring = hue_ring(vivid_up([rgb(h) for h in STICKER], cfg["colors"]["sticker_boost"]))
 else:
     ring = hue_ring(list(final.values()))
 OL = cfg["outline"]
