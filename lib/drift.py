@@ -110,7 +110,9 @@ def stop_colors(layout, pal, since_focus, now):
 def sweep_stop(since_focus):
     """The control stop for the holo shader: black, with the sweep position in its alpha
     (0 = no sweep, 1..255 = start..end)."""
-    x = since_focus / SWEEP["duration"]
+    # Hyprland's own grey -> holo fade (fade_in.native) draws the gradient it had at the switch and
+    # ignores updates until it's done, so the sweep waits for it.
+    x = (since_focus - (FADE_IN if NATIVE_FADE else 0.0)) / SWEEP["duration"]
     if not 0.0 <= x < 1.0:
         return [0, 0, 0, 0]
     x = 1 - (1 - x) ** 2   # ease out: fast start, settling at the far corner
@@ -202,7 +204,7 @@ def main():
         # 60 updates a second while a window switch is still fading, the shimmer rate after that;
         # with the shimmer off, sleep until the next focus event (waking now and then to check
         # for a new wallpaper or theme).
-        busy = time.monotonic() - focus_at < max(FADE_IN, OPP_FADE, SHIMMER["seconds_per_band"], SWEEP["duration"]) + 0.1
+        busy = time.monotonic() - focus_at < max(FADE_IN, OPP_FADE, SHIMMER["seconds_per_band"], FADE_IN + SWEEP["duration"]) + 0.1
         flowing = SHIMMER["enabled"] and SHIMMER["continuous"]
         next_tick += 1 / HZ if busy else 1 / SHIMMER["updates_per_second"] if flowing else 1.0
         if focus_evt.wait(max(0.0, next_tick - time.monotonic())):   # woken early by a focus change
