@@ -1,18 +1,19 @@
 # holo-border
 
 A holographic-foil window border for [Omarchy](https://omarchy.org) (Hyprland). The focused window gets a
-gradient in your theme's colors with thin white and silver glints,
+pastel-rainbow gradient sampled from a holographic sticker, with white glints and a soft sweep of light,
 like the shimmer on a holo trading card.
 
 <!-- Add a screen recording here: docs/demo.gif -->
 
 ## What it does
 
-- **Theme colors, in hue order.** Your current Omarchy theme's blue, cyan, magenta, yellow and bright blue
-  are laid out around the color wheel, with a blended color between each pair of neighbors, so every band
-  flows into the next like holo foil. Each window switch picks a random start and direction, drops in a
-  couple of thin white glints and doubles a band or two so the widths vary. It regenerates automatically
-  when you switch themes.
+- **Sticker colors, in hue order.** Ten colors sampled from a holographic sticker's foil (pink, peach,
+  butter, mint, aqua, sky, periwinkle, lavender, violet, orchid) are laid out around the color wheel,
+  with a blended color between each pair of neighbors, so every band flows into the next like holo foil.
+  They're the same on every theme; only the wallpaper adjusts them (see below). `colors.palette =
+  "theme"` uses your Omarchy theme's blue, cyan, magenta, yellow and bright blue instead, regenerated
+  whenever you switch themes. Each window switch picks a random start.
 - **Neighbor fade.** Each band keeps fading into its top/right neighbor's color, one band every
   `shimmer.seconds_per_band` (2 s), costing about 5% of one core in Hyprland at 10 updates a second. `shimmer.continuous = false`
   fades once per window switch instead, then holds still and costs nothing until the next switch.
@@ -85,7 +86,7 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 
 | Setting | Effect |
 |---|---|
-| `colors.palette` | `theme` (the Omarchy theme's colors) or `sticker` (the holo sticker's pastel rainbow, the same on every theme) |
+| `colors.palette` | `sticker` (default: the holo sticker's pastel rainbow, the same on every theme) or `theme` (the Omarchy theme's colors) |
 | `border.size`, `border.angle`, `border.alpha` | width in px, opacity (used when `transparency.enabled` is off) |
 | `colors.chroma_max` / `chroma_min` | how vivid the colors can be |
 | `colors.lightness_min` / `lightness_max` | how pale or deep the colors can be |
