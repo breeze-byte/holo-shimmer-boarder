@@ -13,7 +13,7 @@ Hyprland's command socket for a fraction of a second:
 - opposites: the glints start as the opposite of the color before them, fading to white
 - shadow: a dark sticker-edge outline (or a faint tint from the gradient) fades in with the border
 - fade:   selecting a window fades the border from the inactive grey to the holo colors
-- sweep:  on a window switch a white and a half-opacity white slanted bar race across the border
+- sweep:  on a window switch a half-opacity white bar runs left to right along the top (or bottom) edge
           (drawn by the holo shader; the daemon only sends their position in a control stop)
 """
 import json, os, random, socket, subprocess, sys, threading, time
@@ -116,7 +116,7 @@ def sweep_stop(since_focus):
     if not 0.0 <= x < 1.0:
         return [0, 0, 0, 0]
     # steady pace: no easing, so the bars spend the same time on the sides as on the top
-    return [0, 0, 0, 1 + round((1 - x if SWEEP["reverse"] else x) * 254)]
+    return [0, 0, 0, 1 + round(x * 254)]
 
 def shadow_color(colors, angle, t):
     """Outline color, or a tint = the gradient's color at this angle (skipping the white stops), faded in by t."""

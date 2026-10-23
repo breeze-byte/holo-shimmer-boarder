@@ -33,7 +33,7 @@ lightness_push = 0.15
 
 [fade_in]
 duration = 0.3        # seconds to go from the grey inactive border to the holo gradient
-native = true         # true: Hyprland does the fade itself (no flash on switch, but it can look different); false: drift.py does
+native = false        # true: Hyprland does the fade itself (no flash on switch, but it can look different); false: drift.py does
 updates_per_second = 60   # update rate while a fade is running (match the screen refresh); the rest of the time nothing is sent
 
 [shadow]
@@ -93,15 +93,15 @@ direction = -1             # 1 or -1: which way the bands flow; -1 with angle 31
 updates_per_second = 30   # update rate when continuous (the switch fade uses fade_in.updates_per_second)
 
 [sweep]
-# On a window switch a white bar and a half-opacity white bar trailing it race across the border
-# along the gradient axis, corner to corner (so each end of a bar covers half the border).
-# Drawn by the holo shader, so it needs bands.repeat > 1 on Hyprland 0.56; it uses the 10th
-# gradient stop, leaving 9 for colors.
+# On a window switch one half-opacity white bar runs along the top (or bottom) edge of the border,
+# from the left corner to the right one, fading out at the end. Drawn by the holo shader, so it
+# needs bands.repeat > 1 on Hyprland 0.56; it uses the 10th gradient stop, leaving 9 for colors.
 enabled = true
-duration = 0.6        # seconds for the bars to cross (at a steady pace)
-width = 0.05          # bar width, as a fraction of the window's diagonal
-gap = 0.11            # distance from the white bar to the trailing one (same units)
-reverse = false       # true: run from the top-right corner instead of the bottom-left
+duration = 1.0        # seconds for the run, at a steady pace, starting the moment you switch
+width = 0.1           # bar length, as a fraction of the edge
+distance = 1.0        # how far along the edge it goes before fading: 1 = to the right corner
+opacity = 0.5         # the bar's white opacity
+edge = "top"          # "top" or "bottom"
 
 [outline]
 # A dark keyline around the border, like a sticker's edge (replaces the tinted shadow).
