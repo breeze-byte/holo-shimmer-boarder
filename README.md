@@ -19,7 +19,7 @@ like the shimmer on a holo trading card.
 - **Sweep.** Right after a window switch's fade-in, then every 5-30 s (random, `sweep.interval_min` /
   `interval_max`), a white bar (70% opacity) runs along the focused window's border: across the top and
   bottom together or up or down the sides together, in a random direction, fading to nothing over
-  `sweep.duration` (2 s). The holo shader draws it; the daemon only sends its position in the 10th
+  `sweep.duration` (1.33 s). The holo shader draws it; the daemon only sends its position in the 10th
   gradient stop, so the bands use 9 colors.
 - **Wallpaper brightness.** The generator scores how bright the wallpaper is (mean perceived lightness,
   0 = dark, 1 = bright). That score sets the border opacity (69% on a dark wallpaper up to 100% on a bright

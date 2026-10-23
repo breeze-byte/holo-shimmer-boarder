@@ -104,7 +104,7 @@ enabled = true
 on_switch = true      # also sweep right after a window switch's fade-in
 interval_min = 5.0    # shortest time from one sweep's start to the next, in seconds
 interval_max = 30.0   # longest
-duration = 2.0        # seconds for one sweep, at a steady pace
+duration = 1.33       # seconds for one sweep, at a steady pace
 width = 0.1           # bar length, as a fraction of the edge
 distance = 1.0        # how far along the edge it goes: 1 = all the way to the far corner
 opacity = 0.7         # the bar's white opacity at the start; it fades evenly to 0 by the end
