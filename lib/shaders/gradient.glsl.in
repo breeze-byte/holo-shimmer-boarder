@@ -16,6 +16,7 @@
 #define HOLO_BAR_WIDTH @BAR_WIDTH@   // total length of the bar's lines and gaps, as a fraction of the edge
 #define HOLO_BAR_LINES @BAR_LINES@   // the bar is this many parallel lines
 #define HOLO_BAR_GAP @BAR_GAP@       // gap between lines, as a fraction of one line's width
+#define HOLO_BAR_GREY @BAR_GREY@     // OkLab lightness of all but the middle line (1 = white like the middle one)
 #define HOLO_BAR_SOFT 0.004          // edge softening, so the lines don't alias
 #define HOLO_SWEEP_DIST @SWEEP_DIST@ // how far along the edge the bars travel: 1 = to the far corner
 #define HOLO_SWEEP_FADE_IN @SWEEP_FADE_IN@ // fraction of the run spent fading in, before fading back out
@@ -39,16 +40,19 @@ vec4 okLabAToSrgb(vec4 lab) {
                 lab[3]);
 }
 
-// holo: the bar centered at center: HOLO_BAR_LINES lines with gaps between them, HOLO_BAR_WIDTH long in all.
-float holoBar(float along, float center) {
+// holo: the bar centered at center: HOLO_BAR_LINES lines with gaps between them, HOLO_BAR_WIDTH long in
+// all. Returns (coverage, lightness): the middle line is white, the others HOLO_BAR_GREY.
+vec2 holoBar(float along, float center) {
     float n = float(HOLO_BAR_LINES);
     float w = HOLO_BAR_WIDTH / (n + (n - 1.0) * HOLO_BAR_GAP);   // one line's width
-    float m = 0.0;
+    vec2  r = vec2(0.0, 1.0);
     for (int k = 0; k < HOLO_BAR_LINES; k++) {
         float c = center - 0.5 * HOLO_BAR_WIDTH + w * (0.5 + float(k) * (1.0 + HOLO_BAR_GAP));
-        m = max(m, 1.0 - smoothstep(w * 0.5, w * 0.5 + HOLO_BAR_SOFT, abs(along - c)));
+        float m = 1.0 - smoothstep(w * 0.5, w * 0.5 + HOLO_BAR_SOFT, abs(along - c));
+        if (m > r[0])
+            r = vec2(m, 2 * k == HOLO_BAR_LINES - 1 ? 1.0 : HOLO_BAR_GREY);
     }
-    return m;
+    return r;
 }
 
 // holo: a control stop (see the top) is the 10th stop, black (OkLab L = 0).
@@ -91,8 +95,9 @@ vec4 holoSweep(vec4 c, vec2 uv, vec4 gradient[10], int gradientLength) {
     float head = mix(-0.5 * HOLO_BAR_WIDTH, HOLO_SWEEP_DIST, sweep);
     // eases in to full opacity over the first HOLO_SWEEP_FADE_IN of the run, then fades evenly to 0
     float env  = smoothstep(0.0, HOLO_SWEEP_FADE_IN, sweep) * clamp((1.0 - sweep) / (1.0 - HOLO_SWEEP_FADE_IN), 0.0, 1.0);
-    float k    = HOLO_SWEEP_OPACITY * env * holoBar(pos, head);
-    return mix(c, vec4(1.0, 0.0, 0.0, c[3]), k);   // toward white (OkLab), keeping the border's opacity
+    vec2  bar  = holoBar(pos, head);
+    float k    = HOLO_SWEEP_OPACITY * env * bar[0];
+    return mix(c, vec4(bar[1], 0.0, 0.0, c[3]), k);   // toward white or grey (OkLab), keeping the border's opacity
 }
 
 vec4 getOkColorForCoordArray1(vec2 normalizedCoord, int gradientLength, vec4 gradient[10], float angle) {
