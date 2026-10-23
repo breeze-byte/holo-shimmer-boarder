@@ -13,7 +13,8 @@ Hyprland's command socket for a fraction of a second:
 - opposites: the glints start as the opposite of the color before them, fading to white
 - shadow: a dark sticker-edge outline (or a faint tint from the gradient) fades in with the border
 - fade:   selecting a window fades the border from the inactive grey to the holo colors
-- sweep:  after a switch's fade-in, then every 5-30 s (random), a white bar runs along the focused window's border,
+- sweep:  after a switch's fade-in a white bar runs across the top and bottom of the new window's border,
+          moving away from the window you came from (sweep.periodic adds random repeats),
           across the top and bottom (or the sides too, sweep.sides), in a random direction
           (drawn by the holo shader; the daemon only sends their position in a control stop)
 """
@@ -53,7 +54,8 @@ focus_evt = threading.Event()   # wakes the main loop the moment focus changes
 sent_at = 0.0                   # when we last sent a border command
 resend = threading.Event()      # Hyprland reloaded its config and reset the border: send it again
 state = {"colors": None, "angle": float(ANGLE), "outline": "rgba(00000000)", "sweep": [0, 0, 0, 0],
-         "addr": None}   # the focused window's address ("0x..."), set by the event thread   # latest border, shared with the event thread
+         "addr": None,   # the focused window's address ("0x..."), set by the event thread
+         "switch_mode": 0}   # the sweep mode for the latest switch (see switch_sweep_mode)   # latest border, shared with the event thread
 
 def ease(x):
     """Smootherstep: 0 -> 1 with zero speed and acceleration at both ends."""
@@ -127,10 +129,25 @@ def white_amount(i, now):
     return max(f if white(step) else 0.0, 1.0 - f if white(step - 1) else 0.0)
 
 def next_sweep(after, now):
-    """A new random sweep: (start time, mode). It starts interval_min..interval_max seconds after
-    the previous one started (after), but not before now; mode bit 0 runs it along the sides (else
-    the top and bottom), bit 1 runs it backward (right to left, or down)."""
+    """The next periodic sweep: (start time, mode), interval_min..interval_max seconds after the
+    previous one started (after), but not before now; mode bit 0 runs it along the sides (else the
+    top and bottom), bit 1 runs it backward (right to left, or down). Never, unless sweep.periodic."""
+    if not SWEEP["periodic"]:
+        return float("inf"), 0
     return max(now, after + random.uniform(SWEEP["interval_min"], SWEEP["interval_max"])), sweep_mode()
+
+def switch_sweep_mode(prev, new):
+    """The sweep for a switch from window prev to window new (addresses): across the top and bottom,
+    moving away from where you came from (left to right if new is right of prev, else right to left).
+    With sweep.follow off, or for a move straight up or down, a random mode."""
+    if SWEEP["follow"] and prev and new:
+        try:
+            x = {c["address"]: c["at"][0] + c["size"][0] / 2 for c in json.loads(query("j/clients"))}
+            if abs(x[new] - x[prev]) > 1:
+                return 0 if x[new] > x[prev] else 2
+        except (KeyError, ValueError, OSError):
+            pass
+    return sweep_mode()
 
 def sweep_mode():
     """A random sweep mode: top and bottom, left to right (0) or right to left (2); with sweep.sides
@@ -230,9 +247,11 @@ def watch_focus():
                     # spinner), so only a different window address counts as a switch.
                     if l.startswith(b"activewindowv2>>") and l != last:
                         last = l
+                        addr = ("0x" + l[16:].decode().strip()) if l[16:].strip() else None
+                        mode = switch_sweep_mode(state["addr"], addr) if SWEEP_ON and SWEEP["on_switch"] else 0
                         with send_lock:
                             focus_at = time.monotonic()
-                            state["addr"] = ("0x" + l[16:].decode().strip()) if l[16:].strip() else None
+                            state["addr"], state["switch_mode"] = addr, mode
                             # Hyprland has already painted the new window in full holo; drop to
                             # grey right away so the fade starts from grey, not from a flash.
                             if state["colors"] and not NATIVE_FADE and state["addr"]:
@@ -295,7 +314,7 @@ def main():
                 if layout_for != focus_at:        # new window: a fresh random arrangement (hidden by the fade-in)
                     layout, layout_for = new_layout(len(pal["ring"])), focus_at
                     if SWEEP["on_switch"]:        # and a sweep once the fade-in is done (Hyprland's own fade ignores updates)
-                        sweep = (focus_at + FADE_IN + 0.05, sweep_mode())
+                        sweep = (focus_at + FADE_IN + 0.05, state["switch_mode"])
                 colors = stop_colors(layout, pal, since, time.monotonic())
                 now = time.monotonic()
                 if now >= sweep[0] + SWEEP["duration"]:   # this sweep is over: schedule the next one

@@ -16,12 +16,12 @@ like the shimmer on a holo trading card.
 - **Neighbor fade.** Each band keeps fading into its top/right neighbor's color, one band every
   `shimmer.seconds_per_band` (2 s), costing about 5% of one core in Hyprland at 10 updates a second. `shimmer.continuous = false`
   fades once per window switch instead, then holds still and costs nothing until the next switch.
-- **Sweep.** Right after a window switch's fade-in, then every 5-30 s (random, `sweep.interval_min` /
-  `interval_max`), a bar of two thin lines (the leading one white, the other 90% white) (70% opacity on
-  a dark wallpaper, up to 100% on a bright one) runs along the focused window's border: across the top
-  and bottom together, in a random direction (`sweep.sides` adds runs up or down the sides), fading in
-  and then out to nothing over `sweep.duration` (1.33 s). The holo shader draws it; the daemon only
-  sends its position in the 10th gradient stop, so the bands use 9 colors.
+- **Sweep.** When focus moves to another window, once its fade-in is done a bar of two thin lines (the
+  leading one white, the other 90% white) runs across the top and bottom of its border, moving away from
+  the window you came from, fading in and then out over `sweep.duration` (1.65 s). Its peak opacity
+  follows the wallpaper (70% on a dark one, up to 100% on a bright one). `sweep.periodic` adds random
+  repeats every 5-30 s. The holo shader draws it; the daemon only sends its position in the 10th
+  gradient stop, so the bands use 9 colors.
 - **Wallpaper brightness.** The generator scores how bright the wallpaper is (mean perceived lightness,
   0 = dark, 1 = bright). That score sets the border opacity (69% on a dark wallpaper up to 100% on a bright
   one), how hard the colors are pushed away from the wallpaper's lightness (contrast target 2.0 up to 4.0),
@@ -91,7 +91,7 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 | `fade_in.duration` / `native` | seconds for the grey-to-gradient fade, and whether Hyprland (`true`) or the daemon (`false`) does it |
 | `bands.colors`, `highlights`, `wide` | colored stops, white glints, and how many bands may be doubled (keep colors + highlights at 10 or less) |
 | `shimmer.enabled`, `seconds_per_band`, `updates_per_second`, `white_chance` | the band-to-band fade, its speed, its update rate, and the chance each step that a band fades to white instead |
-| `sweep.enabled`, `on_switch`, `interval_min` / `interval_max`, `duration`, `width`, `lines` / `line_gap` / `line_grey`, `distance`, `opacity_dark` / `opacity_bright`, `fade_in`, `sides` | the sweep: whether one runs after each switch's fade-in, the range of seconds between sweeps, how long one runs, its bar length, how many lines it's made of, the gap between them and how grey the outer ones are, how far it travels (fractions of the edge), its peak white opacity on a dark and a bright wallpaper, how much of the run it spends fading in, and whether it can run along the sides |
+| `sweep.enabled`, `on_switch`, `follow`, `periodic`, `interval_min` / `interval_max`, `duration`, `width`, `lines` / `line_gap` / `line_grey`, `distance`, `opacity_dark` / `opacity_bright`, `fade_in`, `sides` | the sweep: whether one runs after each switch's fade-in, whether it moves away from the previous window, whether it also repeats, the range of seconds between sweeps, how long one runs, its bar length, how many lines it's made of, the gap between them and how grey the outer ones are, how far it travels (fractions of the edge), its peak white opacity on a dark and a bright wallpaper, how much of the run it spends fading in, and whether it can run along the sides |
 | `outline.enabled`, `range`, `min_alpha` / `max_alpha` | the dark sticker edge, its width, and its opacity on dark / bright wallpapers |
 | `opposites.fade` | seconds for the silvers to fade back from their opposite color |
 | `shadow.range` / `alpha` / `render_power` | size, opacity and softness of the focused-window shadow |

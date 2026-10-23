@@ -96,17 +96,20 @@ updates_per_second = 10   # update rate when continuous (each update is one redr
 white_chance = 0.1        # continuous only: each step, the chance a band fades to white instead of into its neighbor
 
 [sweep]
-# When you switch windows a white bar runs along the new window's border once its
-# fade-in is done (on_switch), then again every interval_min..interval_max seconds (random, start
-# to start): across the top and bottom together, left to right or right to left (or up or down
-# the two sides too, with sides = true), picked at random, fading in to its peak opacity
-# (set by the wallpaper brightness) and back out to 0 as it goes. Drawn by the holo shader, so it needs bands.repeat > 1 on Hyprland 0.56; it uses the 10th
-# gradient stop, leaving 9 for colors.
+# When focus moves to another window (a switch or a hover), a white bar runs across the top and
+# bottom of the new window's border once its fade-in is done, moving away from the window you came
+# from: left to right when you move right, right to left when you move left. It fades in to its
+# peak opacity (set by the wallpaper brightness) and back out to 0 as it goes. With periodic = true
+# it also repeats every interval_min..interval_max seconds (random, start to start). Drawn by the
+# holo shader, so it needs bands.repeat > 1 on Hyprland 0.56; it uses the 10th gradient stop,
+# leaving 9 for colors.
 enabled = true
-on_switch = true      # also sweep right after a window switch's fade-in
+on_switch = true      # sweep right after a window switch's fade-in
+follow = true         # run it away from the window you came from (false: random direction)
+periodic = false      # also sweep every interval_min..interval_max seconds
 interval_min = 5.0    # shortest time from one sweep's start to the next, in seconds
 interval_max = 30.0   # longest
-duration = 1.33       # seconds for one sweep, at a steady pace
+duration = 1.65       # seconds for one sweep, at a steady pace
 width = 0.075         # bar length (its lines and gaps together), as a fraction of the edge
 lines = 2             # the bar is this many parallel lines; the leading one is white
 line_gap = 0.5        # gap between the lines, as a fraction of one line's width
