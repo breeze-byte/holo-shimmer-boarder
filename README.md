@@ -19,11 +19,11 @@ like the shimmer on a holo trading card.
 - **Sweep.** When you switch windows, 0.02 s later a bar of two thin lines (the leading one white, the
   other 90% white) runs across the top and bottom of the new window's border, away from the window you
   came from and then back at half the speed (`sweep.back`, `back_speed`). When you switch workspaces it
-  runs up the sides and back down instead (`sweep.workspace`). Each pass fades in and out, and the whole
-  sweep is done 1 s after the switch (`sweep.total`). Its peak opacity follows the wallpaper (70% on a
-  dark one, up to 100% on a bright one). `sweep.periodic` adds random repeats every 5-30 s. The holo
-  shader draws it; the daemon only sends its position in the 10th gradient stop, so the bands use 9
-  colors.
+  runs up the sides and back down instead (`sweep.workspace`). Each pass fades in and out; the first
+  takes `sweep.duration` (0.99 s) and the way back twice that, so it's done about 3 s after the switch.
+  Its peak opacity follows the wallpaper (70% on a dark one, up to 100% on a bright one).
+  `sweep.periodic` adds random repeats every 5-30 s. The holo shader draws it; the daemon only sends its
+  position in the 10th gradient stop, so the bands use 9 colors.
 - **Wallpaper brightness.** The generator scores how bright the wallpaper is (mean perceived lightness,
   0 = dark, 1 = bright). That score sets the border opacity (69% on a dark wallpaper up to 100% on a bright
   one), how hard the colors are pushed away from the wallpaper's lightness (contrast target 2.0 up to 4.0),
@@ -94,7 +94,7 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 | `fade_in.duration` / `native` | seconds for the grey-to-gradient fade, and whether Hyprland (`true`) or the daemon (`false`) does it |
 | `bands.colors`, `highlights`, `wide` | colored stops, white glints, and how many bands may be doubled (keep colors + highlights at 10 or less) |
 | `shimmer.enabled`, `seconds_per_band`, `updates_per_second`, `white_chance` | the band-to-band fade, its speed, its update rate, and the chance each step that a band fades to white instead |
-| `sweep.enabled`, `on_switch`, `follow`, `back` / `back_speed`, `workspace`, `periodic`, `interval_min` / `interval_max`, `delay`, `total`, `duration`, `width`, `lines` / `line_gap` / `line_grey`, `rim` / `rim_width`, `distance`, `opacity_dark` / `opacity_bright`, `fade_in`, `sides` | the sweep: whether one runs on each switch, whether it moves away from the previous window, whether it comes back and how fast, the passes for a workspace switch, the delay before it starts, how long a switch's whole sweep takes, whether it also repeats, the range of seconds between sweeps, how long one runs, its bar length, how many lines it's made of, the gap between them and how grey the trailing ones are, the darker rim around it, how far it travels (fractions of the edge), its peak white opacity on a dark and a bright wallpaper, how much of the run it spends fading in, and whether it can run along the sides |
+| `sweep.enabled`, `on_switch`, `follow`, `back` / `back_speed`, `workspace`, `periodic`, `interval_min` / `interval_max`, `delay`, `duration`, `width`, `lines` / `line_gap` / `line_grey`, `rim` / `rim_width`, `distance`, `opacity_dark` / `opacity_bright`, `fade_in`, `sides` | the sweep: whether one runs on each switch, whether it moves away from the previous window, whether it comes back and how fast, the passes for a workspace switch, the delay before it starts, whether it also repeats, the range of seconds between sweeps, how long one runs, its bar length, how many lines it's made of, the gap between them and how grey the trailing ones are, the darker rim around it, how far it travels (fractions of the edge), its peak white opacity on a dark and a bright wallpaper, how much of the run it spends fading in, and whether it can run along the sides |
 | `outline.enabled`, `range`, `min_alpha` / `max_alpha` | the dark sticker edge, its width, and its opacity on dark / bright wallpapers |
 | `opposites.fade` | seconds for the silvers to fade back from their opposite color |
 | `shadow.range` / `alpha` / `render_power` | size, opacity and softness of the focused-window shadow |
