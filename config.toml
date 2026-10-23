@@ -125,8 +125,8 @@ line_grey = 0.9       # the other lines' lightness (1 = white like the leading o
 rim = 0.2             # a thin darker rim on each side of the bar, so it pops on pale bands (0 = none)
 rim_width = 1.0       # the rim's width, as a fraction of one line's width
 distance = 1.0        # how far along the edge it goes: 1 = all the way to the far corner
-opacity_dark = 0.7    # the bar's white opacity at the start on a dark wallpaper (brightness score 0)
-opacity_bright = 1.0  # ... and on a bright one (score 1); in between it follows the score
+opacity_dark = 0.5    # the bar's white opacity at the start on a dark wallpaper (brightness score 0)
+opacity_bright = 0.7  # ... and on a bright one (score 1); in between it follows the score
 fade_in = 0.25        # fraction of the run spent easing in to that opacity; then it fades evenly to 0 by the end
 sides = false         # true: some sweeps run up or down the two sides instead of across the top and bottom
 

@@ -98,14 +98,18 @@ vec4 holoSweep(vec4 c, vec2 uv, vec4 gradient[10], int gradientLength) {
         pos = 1.0 - pos;
     float head, env;
     if (HOLO_SWEEP_BOUNCE > 0.0) {
-        // out to the far end, easing in to full opacity over the first HOLO_SWEEP_FADE_IN of the way;
-        // then drift back HOLO_SWEEP_BOUNCE while fading evenly to 0
+        // out to the far end at a steady pace, slowing to a stop over the last 30% of the way and
+        // easing in to full opacity over the first HOLO_SWEEP_FADE_IN; then it eases back
+        // HOLO_SWEEP_BOUNCE (speeding up and slowing down again) while smoothly fading to 0
         float o = sweep / HOLO_SWEEP_SPLIT;
         if (o < 1.0) {
-            head = mix(-0.5 * HOLO_BAR_WIDTH, HOLO_SWEEP_DIST, o);
+            const float o0 = 0.7;                        // where the slowdown starts
+            float v = 1.0 / (o0 + 0.5 * (1.0 - o0));     // the steady speed, so it ends exactly at 1
+            float d = max(0.0, o - o0);
+            head = mix(-0.5 * HOLO_BAR_WIDTH, HOLO_SWEEP_DIST, v * (o - d * d / (2.0 * (1.0 - o0))));
             env  = smoothstep(0.0, HOLO_SWEEP_FADE_IN, o);
         } else {
-            float b = (sweep - HOLO_SWEEP_SPLIT) / (1.0 - HOLO_SWEEP_SPLIT);
+            float b = smoothstep(0.0, 1.0, (sweep - HOLO_SWEEP_SPLIT) / (1.0 - HOLO_SWEEP_SPLIT));
             head = HOLO_SWEEP_DIST - HOLO_SWEEP_BOUNCE * b;
             env  = 1.0 - b;
         }

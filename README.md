@@ -17,11 +17,11 @@ like the shimmer on a holo trading card.
   `shimmer.seconds_per_band` (2 s), costing about 5% of one core in Hyprland at 10 updates a second. `shimmer.continuous = false`
   fades once per window switch instead, then holds still and costs nothing until the next switch.
 - **Sweep.** When you switch windows, 0.02 s later a thin white bar runs across the top and bottom of
-  the new window's border, away from the window you came from, then drifts back a little at half speed
-  as it fades out (`sweep.bounce`, `back_speed`). When you switch workspaces it runs up the sides and
-  back down instead (`sweep.workspace`). It fades in on the way out (`sweep.duration`, 0.99 s) and out
-  during the drift back (0.3 s). Its peak opacity follows the wallpaper (70% on a dark one, up to 100%
-  on a bright one). `sweep.periodic` adds random repeats every 5-30 s. The holo shader draws it; the
+  the new window's border, away from the window you came from, then slows to a stop and eases back a
+  little as it fades out (`sweep.bounce`, `back_speed`). When you switch workspaces it runs up the sides
+  and back down instead (`sweep.workspace`). It fades in on the way out (`sweep.duration`, 0.99 s) and
+  out during the drift back (0.3 s). Its peak opacity follows the wallpaper (50% on a dark one, up to
+  70% on a bright one). `sweep.periodic` adds random repeats every 5-30 s. The holo shader draws it; the
   daemon only sends its position in the 10th gradient stop, so the bands use 9 colors.
 - **Wallpaper brightness.** The generator scores how bright the wallpaper is (mean perceived lightness,
   0 = dark, 1 = bright). That score sets the border opacity (69% on a dark wallpaper up to 100% on a bright
