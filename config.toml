@@ -110,7 +110,8 @@ follow = true         # run it away from the window you came from (false: random
 periodic = false      # also sweep every interval_min..interval_max seconds
 interval_min = 5.0    # shortest time from one sweep's start to the next, in seconds
 interval_max = 30.0   # longest
-duration = 1.38       # seconds for one pass, at a steady pace
+delay = 0.02          # seconds after a switch before the sweep starts
+duration = 0.66       # seconds for one pass, at a steady pace (3 passes: done 2 s after a switch)
 then = ["up", "down"] # after a switch's top-and-bottom pass, passes up / down the two sides ([] = none)
 width = 0.075         # bar length (its lines and gaps together), as a fraction of the edge
 lines = 2             # the bar is this many parallel lines; the leading one is white
