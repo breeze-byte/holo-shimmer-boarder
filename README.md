@@ -87,7 +87,7 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 
 | Setting | Effect |
 |---|---|
-| `colors.sticker_boost` | sticker palette: extra saturation on a bright wallpaper, scaled by its brightness |
+| `colors.sticker_boost` / `sticker_boost_from` | sticker palette: extra saturation on a bright wallpaper, ramping up from the given brightness |
 | `colors.palette` | `sticker` (default: the holo sticker's pastel rainbow, the same on every theme) or `theme` (the Omarchy theme's colors) |
 | `border.size`, `border.angle`, `border.alpha` | width in px, opacity (used when `transparency.enabled` is off) |
 | `colors.chroma_max` / `chroma_min` | how vivid the colors can be |

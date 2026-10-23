@@ -289,7 +289,11 @@ def hue_ring(colors):
 STICKER = ["#f2aed0", "#f8c5a9", "#f1dca3", "#8fe8cb", "#88e0db",   # pink, peach, butter, mint, aqua
            "#98bde5", "#9faee3", "#ada2e8", "#c69ee5", "#e4a4e0"]   # sky, periwinkle, lavender, violet, orchid
 if cfg["colors"]["palette"] == "sticker":
-    ring = hue_ring(vivid_up([rgb(h) for h in STICKER], cfg["colors"]["sticker_boost"]))
+    # vivid_up scales the boost by BRIGHTNESS; rescale so it starts at sticker_boost_from instead of 0,
+    # leaving the darker wallpapers the sticker colors already look right on untouched
+    start = cfg["colors"]["sticker_boost_from"]
+    ramp = max(0.0, (BRIGHTNESS - start) / (1 - start)) / BRIGHTNESS if BRIGHTNESS > 0 else 0.0
+    ring = hue_ring(vivid_up([rgb(h) for h in STICKER], cfg["colors"]["sticker_boost"] * ramp))
 else:
     ring = hue_ring(list(final.values()))
 OL = cfg["outline"]

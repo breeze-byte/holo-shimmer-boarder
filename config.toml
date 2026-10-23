@@ -8,7 +8,8 @@ alpha = 0.9       # border opacity, 1.0 = solid
 
 [colors]
 palette = "sticker"   # "theme": the Omarchy theme's colors; "sticker": the holo sticker's pastel rainbow (same on every theme)
-sticker_boost = 0.4   # sticker palette: extra saturation on a bright wallpaper (scaled by its brightness; 0 on a dark one)
+sticker_boost = 0.4   # sticker palette: extra saturation on a bright wallpaper (the most, at brightness 1)
+sticker_boost_from = 0.45   # ... starting at this wallpaper brightness (below it the colors are left as they are)
 raw = true            # test: use the theme's exact colors (no pastel, clamp or wallpaper adjust)
 # Every theme color is clamped into this OKLCH band, so no theme can be harsher
 # than the others. Raise chroma_max for more vivid colors, lightness_min for paler.
