@@ -53,9 +53,8 @@ case "${1:-toggle}" in
     rm -f "$FLAG"
     stop_daemon
     shaders
-    # Off still keeps the configured border width; only the gradient/animation go away.
-    size=$(python3 -c "import sys; sys.path.insert(0, '$DIR'); import holo_config; print(holo_config.load()['border']['size'])" 2>/dev/null || echo 2)
-    printf -- '-- holo border is off (run: holo on); keeps the configured width\nhl.config({ general = { border_size = %s } })\n' "$size" >"$OUT"
+    # Off sets nothing, so Omarchy's own border (width, colors, animation) applies again.
+    printf -- '-- holo border is off (run: holo on); Omarchy'"'"'s own border settings apply\n' >"$OUT"
     reload
     reset_borders
     notify "Off"
