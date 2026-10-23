@@ -298,7 +298,8 @@ if cfg["bands"]["repeat"] > 1:
     os.makedirs(os.path.dirname(shader_out), exist_ok=True)
     template = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "shaders", "gradient.glsl.in")).read()
     for key, val in (("@REPEAT@", str(int(cfg["bands"]["repeat"]))),
-                     ("@BAR_WIDTH@", "%.4f" % cfg["sweep"]["width"]), ("@SWEEP_DIST@", "%.4f" % cfg["sweep"]["distance"]),
+                     ("@BAR_WIDTH@", "%.4f" % cfg["sweep"]["width"]), ("@BAR_LINES@", str(max(1, int(cfg["sweep"]["lines"])))),
+                     ("@BAR_GAP@", "%.4f" % cfg["sweep"]["line_gap"]), ("@SWEEP_DIST@", "%.4f" % cfg["sweep"]["distance"]),
                      ("@SWEEP_OPACITY@", "%.4f" % SWEEP_OPACITY), ("@SWEEP_FADE_IN@", "%.4f" % min(0.9, max(0.001, SW["fade_in"])))):
         template = template.replace(key, val)
     open(shader_out, "w").write(template)

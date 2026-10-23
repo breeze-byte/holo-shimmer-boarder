@@ -13,8 +13,10 @@
 // moving together, fading in to HOLO_SWEEP_OPACITY and back out to 0 as they go.
 #define HOLO_REPEAT @REPEAT@
 #define HOLO_MIN_STOPS 10
-#define HOLO_BAR_WIDTH @BAR_WIDTH@   // bar length, as a fraction of the edge
-#define HOLO_BAR_SOFT 0.01           // edge softening, so the bar doesn't alias
+#define HOLO_BAR_WIDTH @BAR_WIDTH@   // total length of the bar's lines and gaps, as a fraction of the edge
+#define HOLO_BAR_LINES @BAR_LINES@   // the bar is this many parallel lines
+#define HOLO_BAR_GAP @BAR_GAP@       // gap between lines, as a fraction of one line's width
+#define HOLO_BAR_SOFT 0.004          // edge softening, so the lines don't alias
 #define HOLO_SWEEP_DIST @SWEEP_DIST@ // how far along the edge the bars travel: 1 = to the far corner
 #define HOLO_SWEEP_FADE_IN @SWEEP_FADE_IN@ // fraction of the run spent fading in, before fading back out
 #define HOLO_SWEEP_OPACITY @SWEEP_OPACITY@ // the bar's white opacity
@@ -37,8 +39,16 @@ vec4 okLabAToSrgb(vec4 lab) {
                 lab[3]);
 }
 
+// holo: the bar centered at center: HOLO_BAR_LINES lines with gaps between them, HOLO_BAR_WIDTH long in all.
 float holoBar(float along, float center) {
-    return 1.0 - smoothstep(HOLO_BAR_WIDTH * 0.5, HOLO_BAR_WIDTH * 0.5 + HOLO_BAR_SOFT, abs(along - center));
+    float n = float(HOLO_BAR_LINES);
+    float w = HOLO_BAR_WIDTH / (n + (n - 1.0) * HOLO_BAR_GAP);   // one line's width
+    float m = 0.0;
+    for (int k = 0; k < HOLO_BAR_LINES; k++) {
+        float c = center - 0.5 * HOLO_BAR_WIDTH + w * (0.5 + float(k) * (1.0 + HOLO_BAR_GAP));
+        m = max(m, 1.0 - smoothstep(w * 0.5, w * 0.5 + HOLO_BAR_SOFT, abs(along - c)));
+    }
+    return m;
 }
 
 // holo: a control stop (see the top) is the 10th stop, black (OkLab L = 0).
