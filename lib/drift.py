@@ -14,7 +14,7 @@ Hyprland's command socket for a fraction of a second:
 - shadow: a dark sticker-edge outline (or a faint tint from the gradient) fades in with the border
 - fade:   selecting a window fades the border from the inactive grey to the holo colors
 - sweep:  after a switch's fade-in, then every 5-30 s (random), a white bar runs along the focused window's border,
-          across the top and bottom or along the sides, in a random direction
+          across the top and bottom (or the sides too, sweep.sides), in a random direction
           (drawn by the holo shader; the daemon only sends their position in a control stop)
 """
 import json, os, random, socket, subprocess, sys, threading, time
@@ -114,7 +114,12 @@ def next_sweep(after, now):
     """A new random sweep: (start time, mode). It starts interval_min..interval_max seconds after
     the previous one started (after), but not before now; mode bit 0 runs it along the sides (else
     the top and bottom), bit 1 runs it backward (right to left, or down)."""
-    return max(now, after + random.uniform(SWEEP["interval_min"], SWEEP["interval_max"])), random.randrange(4)
+    return max(now, after + random.uniform(SWEEP["interval_min"], SWEEP["interval_max"])), sweep_mode()
+
+def sweep_mode():
+    """A random sweep mode: top and bottom, left to right (0) or right to left (2); with sweep.sides
+    also up (1) or down (3) the sides."""
+    return random.randrange(4) if SWEEP["sides"] else random.choice((0, 2))
 
 def sweep_stop(sweep, now):
     """The control stop for the holo shader: black, with the sweep in its alpha: 0 = none, else
@@ -155,6 +160,12 @@ def shadow_cmd(colors, angle, t):
     if not (SHADOW_ON or OUTLINE_ON):
         return None
     return 'eval hl.config({decoration={shadow={color="%s"}}})' % shadow_color(colors, angle, t)
+
+def read_shader():
+    try:
+        return open(SHADER).read()
+    except OSError:
+        return None
 
 def wallpaper_stamp():
     try:
@@ -254,7 +265,10 @@ def main():
                 stamp = wallpaper_stamp()
                 if stamp != wall:                  # new wallpaper: re-sample its dominant color
                     wall = stamp
+                    before = read_shader()
                     subprocess.run([sys.executable, GENERATOR], timeout=30)
+                    if SWEEP_ON and read_shader() not in (before, None):   # e.g. the sweep opacity follows the wallpaper
+                        subprocess.run(["hyprctl", "reloadshaders", os.path.dirname(SHADER)], capture_output=True, timeout=10)
             m = os.path.getmtime(COLORS)
             if m != mtime:
                 pal, mtime = load_colors(), m
@@ -265,7 +279,7 @@ def main():
                 if layout_for != focus_at:        # new window: a fresh random arrangement (hidden by the fade-in)
                     layout, layout_for = new_layout(len(pal["ring"])), focus_at
                     if SWEEP["on_switch"]:        # and a sweep once the fade-in is done (Hyprland's own fade ignores updates)
-                        sweep = (focus_at + FADE_IN + 0.05, random.randrange(4))
+                        sweep = (focus_at + FADE_IN + 0.05, sweep_mode())
                 colors = stop_colors(layout, pal, since, time.monotonic())
                 now = time.monotonic()
                 if now >= sweep[0] + SWEEP["duration"]:   # this sweep is over: schedule the next one

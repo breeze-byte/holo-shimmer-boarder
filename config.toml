@@ -97,10 +97,10 @@ updates_per_second = 10   # update rate when continuous (each update is one redr
 [sweep]
 # When you switch windows a white bar runs along the new window's border once its
 # fade-in is done (on_switch), then again every interval_min..interval_max seconds (random, start
-# to start): across the top and bottom together (left to right or right to left) or up or
-# down the two sides together, picked at random, fading from `opacity` to 0 as it goes. Drawn by
-# the holo shader, so it needs bands.repeat > 1 on Hyprland 0.56; it uses the 10th gradient stop,
-# leaving 9 for colors.
+# to start): across the top and bottom together, left to right or right to left (or up or down
+# the two sides too, with sides = true), picked at random, fading from its starting opacity
+# (set by the wallpaper brightness) to 0 as it goes. Drawn by the holo shader, so it needs bands.repeat > 1 on Hyprland 0.56; it uses the 10th
+# gradient stop, leaving 9 for colors.
 enabled = true
 on_switch = true      # also sweep right after a window switch's fade-in
 interval_min = 5.0    # shortest time from one sweep's start to the next, in seconds
@@ -108,7 +108,9 @@ interval_max = 30.0   # longest
 duration = 1.33       # seconds for one sweep, at a steady pace
 width = 0.1           # bar length, as a fraction of the edge
 distance = 1.0        # how far along the edge it goes: 1 = all the way to the far corner
-opacity = 0.7         # the bar's white opacity at the start; it fades evenly to 0 by the end
+opacity_dark = 0.7    # the bar's white opacity at the start on a dark wallpaper (brightness score 0)
+opacity_bright = 1.0  # ... and on a bright one (score 1); in between it follows the score. It fades evenly to 0 by the end
+sides = false         # true: some sweeps run up or down the two sides instead of across the top and bottom
 
 [outline]
 # A dark keyline around the border, like a sticker's edge (replaces the tinted shadow).
