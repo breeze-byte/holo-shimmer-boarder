@@ -313,8 +313,8 @@ def main():
                 since = time.monotonic() - focus_at
                 if layout_for != focus_at:        # new window: a fresh random arrangement (hidden by the fade-in)
                     layout, layout_for = new_layout(len(pal["ring"])), focus_at
-                    if SWEEP["on_switch"]:        # and a sweep once the fade-in is done (Hyprland's own fade ignores updates)
-                        sweep = (focus_at + FADE_IN + 0.05, state["switch_mode"])
+                    if SWEEP["on_switch"]:        # and a sweep, right away (or after Hyprland's own fade, which ignores updates)
+                        sweep = (focus_at + (FADE_IN + 0.05 if NATIVE_FADE else 0.0), state["switch_mode"])
                 colors = stop_colors(layout, pal, since, time.monotonic())
                 now = time.monotonic()
                 if now >= sweep[0] + SWEEP["duration"]:   # this sweep is over: schedule the next one
