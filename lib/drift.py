@@ -46,12 +46,14 @@ COLORS = os.path.expanduser("~/.local/state/holo/colors.json")   # written by ge
 WALLPAPER = os.path.expanduser("~/.local/state/omarchy/current/background")
 GENERATOR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gen-holo-border.py")
 WALLPAPER_EVERY = 3.0   # seconds between wallpaper-change checks
+SHADOW_EVERY = 5.0      # seconds between shadow-tint updates while the colors drift
 focus_at = -1e9   # when focus last changed (set by the event thread)
 send_lock = threading.Lock()    # border commands go out one at a time, in the order they were decided
 focus_evt = threading.Event()   # wakes the main loop the moment focus changes
 sent_at = 0.0                   # when we last sent a border command
 resend = threading.Event()      # Hyprland reloaded its config and reset the border: send it again
-state = {"colors": None, "angle": float(ANGLE), "outline": "rgba(00000000)", "sweep": [0, 0, 0, 0]}   # latest border, shared with the event thread
+state = {"colors": None, "angle": float(ANGLE), "outline": "rgba(00000000)", "sweep": [0, 0, 0, 0],
+         "addr": None}   # the focused window's address ("0x..."), set by the event thread   # latest border, shared with the event thread
 
 def ease(x):
     """Smootherstep: 0 -> 1 with zero speed and acceleration at both ends."""
@@ -134,16 +136,23 @@ def shadow_color(colors, angle, t):
     rgb = [round(x + (y - x) * f) for x, y in zip(a[:3], b[:3])]
     return "rgba(%02x%02x%02x%02x)" % (*rgb, round(255 * SHADOW_ALPHA * t))
 
-def eval_colors(colors, t, angle, shadow_t=None):
-    """Border at fade position t (0 = inactive grey, 1 = holo colors) and the given angle;
-    the shadow fades in with it (shadow_t overrides its position)."""
-    sh = ""
-    if SHADOW_ON or OUTLINE_ON:
-        sh = ',decoration={shadow={color="%s"}}' % shadow_color(colors, angle, t if shadow_t is None else shadow_t)
-    cl = ",".join('"rgba(%02x%02x%02x%02x)"' % tuple(round(g + (v - g) * t) for g, v in zip(INACTIVE, c)) for c in colors)
+def border_cmd(colors, t, angle):
+    """Border of the focused window at fade position t (0 = inactive grey, 1 = holo colors) and the
+    given angle, set as that window's own active_border_color. Much cheaper for Hyprland than
+    changing the config (hl.config re-applies the whole config: ~6x the CPU per update)."""
+    if not state["addr"]:
+        return None
+    cl = " ".join("rgba(%02x%02x%02x%02x)" % tuple(round(g + (v - g) * t) for g, v in zip(INACTIVE, c)) for c in colors)
     if SWEEP_ON:
-        cl += ',"rgba(%02x%02x%02x%02x)"' % tuple(state["sweep"])
-    return "eval hl.config({general={col={active_border={colors={%s},angle=%.1f}}}%s})" % (cl, angle % 360, sh)
+        cl += " rgba(%02x%02x%02x%02x)" % tuple(state["sweep"])
+    return ('dispatch hl.dsp.window.set_prop({ prop = "active_border_color", value = "%s %ddeg", window = "address:%s" })'
+            % (cl, round(angle) % 360, state["addr"]))
+
+def shadow_cmd(colors, angle, t):
+    """The focused-window shadow color (it's global config, so it's sent sparingly), or None."""
+    if not (SHADOW_ON or OUTLINE_ON):
+        return None
+    return 'eval hl.config({decoration={shadow={color="%s"}}})' % shadow_color(colors, angle, t)
 
 def wallpaper_stamp():
     try:
@@ -152,16 +161,22 @@ def wallpaper_stamp():
     except OSError:
         return None
 
-def send(cmd):
-    global sent_at
-    sent_at = time.monotonic()
+def query(cmd):
+    """Send a command over Hyprland's command socket and return its reply."""
     s = socket.socket(socket.AF_UNIX)
     s.settimeout(1)
     s.connect(SOCK)
     s.send(cmd.encode())
-    while s.recv(65536):
-        pass
+    reply = b""
+    while chunk := s.recv(65536):
+        reply += chunk
     s.close()
+    return reply.decode()
+
+def send(cmd):
+    global sent_at
+    sent_at = time.monotonic()
+    query(cmd)
 
 def watch_focus():
     global focus_at
@@ -188,10 +203,11 @@ def watch_focus():
                         last = l
                         with send_lock:
                             focus_at = time.monotonic()
+                            state["addr"] = ("0x" + l[16:].decode().strip()) if l[16:].strip() else None
                             # Hyprland has already painted the new window in full holo; drop to
                             # grey right away so the fade starts from grey, not from a flash.
-                            if state["colors"] and not NATIVE_FADE:
-                                send(eval_colors(state["colors"], 0.0, state["angle"], 0.0))
+                            if state["colors"] and not NATIVE_FADE and state["addr"]:
+                                send(border_cmd(state["colors"], 0.0, state["angle"]))
                         focus_evt.set()
         except Exception:
             time.sleep(1)
@@ -203,7 +219,12 @@ def main():
     layout, layout_for = new_layout(len(pal["ring"])), focus_at
     wall, wall_at = wallpaper_stamp(), 0.0
     angle = float(ANGLE)
-    last_cmd = None
+    last_cmd = last_shadow = None
+    shadow_at = 0.0
+    try:   # the window focused at startup (later ones come from the event thread)
+        state["addr"] = json.loads(query("j/activewindow")).get("address") or None
+    except (OSError, ValueError):
+        pass
     next_tick = time.monotonic()
     sweep = next_sweep(next_tick, next_tick)
     while True:
@@ -223,7 +244,7 @@ def main():
             next_tick = time.monotonic()
         if resend.is_set() or time.monotonic() - sent_at > 30:   # a reload resets the border; also refresh now and then
             resend.clear()
-            last_cmd = None
+            last_cmd = last_shadow = None
         now = time.monotonic()
         try:
             if cfg["adaptive"]["enabled"] and cfg["adaptive"]["source"] == "wallpaper" and now >= wall_at:
@@ -248,10 +269,17 @@ def main():
                 if now >= sweep[0] + SWEEP["duration"]:   # this sweep is over: schedule the next one
                     sweep = next_sweep(sweep[0], now)
                 state["colors"], state["angle"], state["sweep"] = colors, angle, sweep_stop(sweep, now)
-                cmd = eval_colors(colors, 1.0 if NATIVE_FADE else ease(since / FADE_IN), angle)
-                if cmd != last_cmd:               # nothing visibly changed: don't make Hyprland redo the border
+                t_fade = 1.0 if NATIVE_FADE else ease(since / FADE_IN)
+                cmd = border_cmd(colors, t_fade, angle)
+                if cmd and cmd != last_cmd:       # nothing visibly changed: don't make Hyprland redo the border
                     send(cmd)
                     last_cmd = cmd
+                # The shadow is global config, so only update it while a switch fades in, after a
+                # reload, or every SHADOW_EVERY seconds as the colors drift.
+                sh = shadow_cmd(colors, angle, t_fade)
+                if sh and sh != last_shadow and (since < FADE_IN + 0.1 or last_shadow is None or now - shadow_at > SHADOW_EVERY):
+                    send(sh)
+                    last_shadow, shadow_at = sh, now
         except Exception:
             time.sleep(1)
 

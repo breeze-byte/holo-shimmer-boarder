@@ -14,7 +14,7 @@ like the shimmer on a holo trading card.
   couple of thin white glints and doubles a band or two so the widths vary. It regenerates automatically
   when you switch themes.
 - **Neighbor fade.** Each band keeps fading into its top/right neighbor's color, one band every
-  `shimmer.seconds_per_band` (2 s), costing a few % of a core in Hyprland. `shimmer.continuous = false`
+  `shimmer.seconds_per_band` (2 s), costing about 5% of one core in Hyprland at 10 updates a second. `shimmer.continuous = false`
   fades once per window switch instead, then holds still and costs nothing until the next switch.
 - **Sweep.** Right after a window switch's fade-in, then every 5-30 s (random, `sweep.interval_min` /
   `interval_max`), a white bar (70% opacity) runs along the focused window's border: across the top and
