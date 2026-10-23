@@ -129,6 +129,8 @@ def white_amount(i, now):
     white = lambda s: random.Random(hash((WHITE_SEED, i, s))).random() < chance
     return max(f if white(step) else 0.0, 1.0 - f if white(step - 1) else 0.0)
 
+# A switch's whole sweep, from the switch to the end of its last pass, takes sweep.total seconds.
+SWITCH_SECONDS = max(0.05, SWEEP["total"] - SWEEP["delay"])
 # A workspace switch runs these passes along the sides instead (sweep.workspace).
 WORKSPACE_PASSES = tuple({"up": 1, "down": 3}[p] for p in SWEEP["workspace"] if p in ("up", "down"))
 
@@ -151,7 +153,8 @@ def switch_sweep_mode(prev, new):
         try:
             wins = {c["address"]: c for c in json.loads(query("j/clients"))}
             if wins[new]["workspace"]["id"] != wins[prev]["workspace"]["id"] and WORKSPACE_PASSES:
-                return tuple((m, SWEEP["duration"]) for m in WORKSPACE_PASSES)
+                secs = SWITCH_SECONDS / len(WORKSPACE_PASSES)
+                return tuple((m, secs) for m in WORKSPACE_PASSES)
             x = {a: c["at"][0] + c["size"][0] / 2 for a, c in wins.items()}
             if SWEEP["follow"] and abs(x[new] - x[prev]) > 1:
                 first = 0 if x[new] > x[prev] else 2
@@ -159,10 +162,10 @@ def switch_sweep_mode(prev, new):
             pass
     if first is None:
         first = sweep_mode()
-    out = ((first, SWEEP["duration"]),)
-    if SWEEP["back"]:   # ^ 2 flips the direction; the way back runs at back_speed
-        out += ((first ^ 2, SWEEP["duration"] / SWEEP["back_speed"]),)
-    return out
+    if not SWEEP["back"]:
+        return ((first, SWITCH_SECONDS),)
+    out = SWITCH_SECONDS / (1 + 1 / SWEEP["back_speed"])   # the way back runs at back_speed
+    return ((first, out), (first ^ 2, SWITCH_SECONDS - out))   # ^ 2 flips the direction
 
 def sweep_mode():
     """A random sweep mode: top and bottom, left to right (0) or right to left (2); with sweep.sides

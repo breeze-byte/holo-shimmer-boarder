@@ -112,7 +112,8 @@ periodic = false      # also sweep every interval_min..interval_max seconds
 interval_min = 5.0    # shortest time from one sweep's start to the next, in seconds
 interval_max = 30.0   # longest
 delay = 0.02          # seconds after a switch before the sweep starts
-duration = 0.99       # seconds for one pass, at a steady pace (the way back takes duration / back_speed)
+total = 1.0           # seconds from a switch to the end of its sweep; the passes split it (the way back at back_speed)
+duration = 0.99       # seconds for one periodic sweep (periodic = true)
 back = true           # window switch: after running away from the previous window, come back the way it came
 back_speed = 0.5      # the way back runs at this fraction of the speed (0.5 = half as fast)
 workspace = ["up", "down"]   # workspace switch: passes up / down the two sides instead ([] = same as a window switch)
