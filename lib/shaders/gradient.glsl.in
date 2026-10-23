@@ -16,7 +16,7 @@
 #define HOLO_BAR_WIDTH @BAR_WIDTH@   // total length of the bar's lines and gaps, as a fraction of the edge
 #define HOLO_BAR_LINES @BAR_LINES@   // the bar is this many parallel lines
 #define HOLO_BAR_GAP @BAR_GAP@       // gap between lines, as a fraction of one line's width
-#define HOLO_BAR_GREY @BAR_GREY@     // OkLab lightness of all but the middle line (1 = white like the middle one)
+#define HOLO_BAR_GREY @BAR_GREY@     // OkLab lightness of all but the leading line (1 = white like the leading one)
 #define HOLO_BAR_SOFT 0.004          // edge softening, so the lines don't alias
 #define HOLO_SWEEP_DIST @SWEEP_DIST@ // how far along the edge the bars travel: 1 = to the far corner
 #define HOLO_SWEEP_FADE_IN @SWEEP_FADE_IN@ // fraction of the run spent fading in, before fading back out
@@ -41,7 +41,7 @@ vec4 okLabAToSrgb(vec4 lab) {
 }
 
 // holo: the bar centered at center: HOLO_BAR_LINES lines with gaps between them, HOLO_BAR_WIDTH long in
-// all. Returns (coverage, lightness): the middle line is white, the others HOLO_BAR_GREY.
+// all. Returns (coverage, lightness): the leading line (furthest along) is white, the others HOLO_BAR_GREY.
 vec2 holoBar(float along, float center) {
     float n = float(HOLO_BAR_LINES);
     float w = HOLO_BAR_WIDTH / (n + (n - 1.0) * HOLO_BAR_GAP);   // one line's width
@@ -50,7 +50,7 @@ vec2 holoBar(float along, float center) {
         float c = center - 0.5 * HOLO_BAR_WIDTH + w * (0.5 + float(k) * (1.0 + HOLO_BAR_GAP));
         float m = 1.0 - smoothstep(w * 0.5, w * 0.5 + HOLO_BAR_SOFT, abs(along - c));
         if (m > r[0])
-            r = vec2(m, 2 * k == HOLO_BAR_LINES - 1 ? 1.0 : HOLO_BAR_GREY);
+            r = vec2(m, k == HOLO_BAR_LINES - 1 ? 1.0 : HOLO_BAR_GREY);
     }
     return r;
 }

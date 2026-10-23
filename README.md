@@ -17,7 +17,7 @@ like the shimmer on a holo trading card.
   `shimmer.seconds_per_band` (2 s), costing about 5% of one core in Hyprland at 10 updates a second. `shimmer.continuous = false`
   fades once per window switch instead, then holds still and costs nothing until the next switch.
 - **Sweep.** Right after a window switch's fade-in, then every 5-30 s (random, `sweep.interval_min` /
-  `interval_max`), a bar of five thin lines (white in the middle, light grey around it) (70% opacity on
+  `interval_max`), a bar of two thin lines (the leading one white, the other 90% white) (70% opacity on
   a dark wallpaper, up to 100% on a bright one) runs along the focused window's border: across the top
   and bottom together, in a random direction (`sweep.sides` adds runs up or down the sides), fading in
   and then out to nothing over `sweep.duration` (1.33 s). The holo shader draws it; the daemon only
