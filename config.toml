@@ -50,7 +50,7 @@ fade = 1.5                 # seconds for them to fade back to their normal color
 # overriding border.alpha. Brighter wallpaper = more opaque border so pale colors stay visible.
 enabled = true
 min_alpha = 0.69      # border opacity on a dark wallpaper
-max_alpha = 1.0       # border opacity on a bright wallpaper
+max_alpha = 0.9       # border opacity on a bright wallpaper (ceiling)
 dark_l = 0.2          # wallpaper lightness (OKLCH L) that scores 0
 bright_l = 0.8        # ... and 1
 
