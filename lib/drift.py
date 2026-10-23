@@ -128,13 +128,16 @@ def white_amount(i, now):
     white = lambda s: random.Random(hash((WHITE_SEED, i, s))).random() < chance
     return max(f if white(step) else 0.0, 1.0 - f if white(step - 1) else 0.0)
 
+# After the switch sweep's top-and-bottom pass, these passes follow along the sides (sweep.then).
+THEN = tuple({"up": 1, "down": 3}[p] for p in SWEEP["then"] if p in ("up", "down"))
+
 def next_sweep(after, now):
     """The next periodic sweep: (start time, mode), interval_min..interval_max seconds after the
     previous one started (after), but not before now; mode bit 0 runs it along the sides (else the
     top and bottom), bit 1 runs it backward (right to left, or down). Never, unless sweep.periodic."""
     if not SWEEP["periodic"]:
-        return float("inf"), 0
-    return max(now, after + random.uniform(SWEEP["interval_min"], SWEEP["interval_max"])), sweep_mode()
+        return float("inf"), (0,)
+    return max(now, after + random.uniform(SWEEP["interval_min"], SWEEP["interval_max"])), (sweep_mode(),)
 
 def switch_sweep_mode(prev, new):
     """The sweep for a switch from window prev to window new (addresses): across the top and bottom,
@@ -156,12 +159,16 @@ def sweep_mode():
 
 def sweep_stop(sweep, now):
     """The control stop for the holo shader: black, with the sweep in its alpha: 0 = none, else
-    1 + mode * 63 + step (step 0..62 = start..end, at a steady pace)."""
-    start, mode = sweep
+    1 + mode * 63 + step (step 0..62 = start..end, at a steady pace). A sweep is (start time, modes):
+    one pass per mode, back to back."""
+    start, modes = sweep
     x = (now - start) / SWEEP["duration"]
-    if not 0.0 <= x < 1.0:
+    if not 0.0 <= x < len(modes):
         return [0, 0, 0, 0]
-    return [0, 0, 0, 1 + mode * 63 + round(x * 62)]
+    return [0, 0, 0, 1 + modes[int(x)] * 63 + round((x % 1) * 62)]
+
+def sweep_end(sweep):
+    return sweep[0] + SWEEP["duration"] * len(sweep[1])
 
 def shadow_color(colors, angle, t):
     """Outline color, or a tint = the gradient's color at this angle (skipping the white stops), faded in by t."""
@@ -282,7 +289,7 @@ def main():
         # A random sweep also runs at 60 a second, and the loop wakes up in time to start it.
         t = time.monotonic()
         busy = t - focus_at < max(FADE_IN, OPP_FADE, SHIMMER["seconds_per_band"]) + 0.1
-        busy = busy or (SWEEP_ON and sweep[0] - 0.05 <= t < sweep[0] + SWEEP["duration"] + 0.1)
+        busy = busy or (SWEEP_ON and sweep[0] - 0.05 <= t < sweep_end(sweep) + 0.1)
         flowing = SHIMMER["enabled"] and SHIMMER["continuous"]
         next_tick += 1 / HZ if busy else 1 / SHIMMER["updates_per_second"] if flowing else 1.0
         if SWEEP_ON and t < sweep[0] - 0.05:
@@ -314,10 +321,10 @@ def main():
                 if layout_for != focus_at:        # new window: a fresh random arrangement (hidden by the fade-in)
                     layout, layout_for = new_layout(len(pal["ring"])), focus_at
                     if SWEEP["on_switch"]:        # and a sweep, right away (or after Hyprland's own fade, which ignores updates)
-                        sweep = (focus_at + (FADE_IN + 0.05 if NATIVE_FADE else 0.0), state["switch_mode"])
+                        sweep = (focus_at + (FADE_IN + 0.05 if NATIVE_FADE else 0.0), (state["switch_mode"],) + THEN)
                 colors = stop_colors(layout, pal, since, time.monotonic())
                 now = time.monotonic()
-                if now >= sweep[0] + SWEEP["duration"]:   # this sweep is over: schedule the next one
+                if now >= sweep_end(sweep):       # this sweep is over: schedule the next one
                     sweep = next_sweep(sweep[0], now)
                 state["colors"], state["angle"], state["sweep"] = colors, angle, sweep_stop(sweep, now)
                 t_fade = 1.0 if NATIVE_FADE else ease(since / FADE_IN)
