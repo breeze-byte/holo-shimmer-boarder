@@ -129,6 +129,9 @@ def white_amount(i, now):
     white = lambda s: random.Random(hash((WHITE_SEED, i, s))).random() < chance
     return max(f if white(step) else 0.0, 1.0 - f if white(step - 1) else 0.0)
 
+# One pass: the run out (duration) plus, with sweep.bounce, the drift back at back_speed (the shader
+# splits the pass the same way: see SWEEP_SPLIT in gen-holo-border.py).
+PASS_SECONDS = SWEEP["duration"] * (1 + max(0.0, SWEEP["bounce"]) / SWEEP["back_speed"])
 # A workspace switch runs these passes along the sides instead (sweep.workspace).
 WORKSPACE_PASSES = tuple({"up": 1, "down": 3}[p] for p in SWEEP["workspace"] if p in ("up", "down"))
 
@@ -137,8 +140,8 @@ def next_sweep(after, now):
     previous one started (after), but not before now; mode bit 0 runs it along the sides (else the
     top and bottom), bit 1 runs it backward (right to left, or down). Never, unless sweep.periodic."""
     if not SWEEP["periodic"]:
-        return float("inf"), ((0, SWEEP["duration"]),)
-    return max(now, after + random.uniform(SWEEP["interval_min"], SWEEP["interval_max"])), ((sweep_mode(), SWEEP["duration"]),)
+        return float("inf"), ((0, PASS_SECONDS),)
+    return max(now, after + random.uniform(SWEEP["interval_min"], SWEEP["interval_max"])), ((sweep_mode(), PASS_SECONDS),)
 
 def switch_sweep_mode(prev, new):
     """The sweep passes, (mode, seconds) pairs, for a switch from window prev to window new (addresses).
@@ -151,7 +154,7 @@ def switch_sweep_mode(prev, new):
         try:
             wins = {c["address"]: c for c in json.loads(query("j/clients"))}
             if wins[new]["workspace"]["id"] != wins[prev]["workspace"]["id"] and WORKSPACE_PASSES:
-                return tuple((m, SWEEP["duration"]) for m in WORKSPACE_PASSES)
+                return tuple((m, PASS_SECONDS) for m in WORKSPACE_PASSES)
             x = {a: c["at"][0] + c["size"][0] / 2 for a, c in wins.items()}
             if SWEEP["follow"] and abs(x[new] - x[prev]) > 1:
                 first = 0 if x[new] > x[prev] else 2
@@ -159,9 +162,9 @@ def switch_sweep_mode(prev, new):
             pass
     if first is None:
         first = sweep_mode()
-    out = ((first, SWEEP["duration"]),)
-    if SWEEP["back"]:   # ^ 2 flips the direction; the way back runs at back_speed
-        out += ((first ^ 2, SWEEP["duration"] / SWEEP["back_speed"]),)
+    out = ((first, PASS_SECONDS),)
+    if SWEEP["back"]:   # a full pass back too: ^ 2 flips the direction; it runs at back_speed
+        out += ((first ^ 2, PASS_SECONDS / SWEEP["back_speed"]),)
     return out
 
 def sweep_mode():
@@ -270,7 +273,7 @@ def watch_focus():
                     if l.startswith(b"activewindowv2>>") and l != last:
                         last = l
                         addr = ("0x" + l[16:].decode().strip()) if l[16:].strip() else None
-                        mode = switch_sweep_mode(state["addr"], addr) if SWEEP_ON and SWEEP["on_switch"] else ((0, SWEEP["duration"]),)
+                        mode = switch_sweep_mode(state["addr"], addr) if SWEEP_ON and SWEEP["on_switch"] else ((0, PASS_SECONDS),)
                         with send_lock:
                             focus_at = time.monotonic()
                             state["addr"], state["switch_mode"] = addr, mode

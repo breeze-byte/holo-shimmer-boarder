@@ -303,6 +303,9 @@ shader_out = os.path.join(os.path.dirname(colors_json), "shaders", "gradient.gls
 # white shows up easily over a dark wallpaper's bands and needs more on a bright one.
 SW = cfg["sweep"]
 SWEEP_OPACITY = SW["opacity_dark"] + (SW["opacity_bright"] - SW["opacity_dark"]) * BRIGHTNESS
+# With a bounce, a pass is the run out (duration) plus the drift back at back_speed; this is the
+# share of the pass spent going out. drift.py makes each pass last duration / SWEEP_SPLIT.
+SWEEP_SPLIT = 1 / (1 + max(0.0, SW["bounce"]) / SW["back_speed"])
 if cfg["bands"]["repeat"] > 1:
     os.makedirs(os.path.dirname(shader_out), exist_ok=True)
     template = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "shaders", "gradient.glsl.in")).read()
@@ -310,7 +313,8 @@ if cfg["bands"]["repeat"] > 1:
                      ("@BAR_WIDTH@", "%.4f" % cfg["sweep"]["width"]), ("@BAR_LINES@", str(max(1, int(cfg["sweep"]["lines"])))),
                      ("@BAR_GAP@", "%.4f" % cfg["sweep"]["line_gap"]), ("@BAR_GREY@", "%.4f" % cfg["sweep"]["line_grey"]), ("@BAR_RIM@", "%.4f" % cfg["sweep"]["rim"]),
                      ("@BAR_RIM_WIDTH@", "%.4f" % cfg["sweep"]["rim_width"]), ("@SWEEP_DIST@", "%.4f" % cfg["sweep"]["distance"]),
-                     ("@SWEEP_OPACITY@", "%.4f" % SWEEP_OPACITY), ("@SWEEP_FADE_IN@", "%.4f" % min(0.9, max(0.001, SW["fade_in"])))):
+                     ("@SWEEP_OPACITY@", "%.4f" % SWEEP_OPACITY), ("@SWEEP_FADE_IN@", "%.4f" % min(0.9, max(0.001, SW["fade_in"]))),
+                     ("@SWEEP_BOUNCE@", "%.4f" % max(0.0, SW["bounce"])), ("@SWEEP_SPLIT@", "%.4f" % SWEEP_SPLIT)):
         template = template.replace(key, val)
     open(shader_out, "w").write(template)
 elif os.path.exists(shader_out):

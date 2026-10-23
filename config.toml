@@ -99,7 +99,8 @@ white_chance = 0.1        # continuous only: each step, the chance a band fades 
 [sweep]
 # When focus moves to another window on the same workspace (a switch or a hover), a white bar runs
 # across the top and bottom of its border, away from the window you came from (left to right when
-# you move right, right to left when you move left), then back the way it came (back). When you
+# you move right, right to left when you move left), then drifts back a little as it fades out
+# (bounce). When you
 # switch workspaces it runs up the two sides and back down instead (workspace). Each pass fades in
 # to its peak opacity (set by the wallpaper brightness) and back out to 0. With periodic = true it
 # also repeats every interval_min..interval_max seconds (random, start to start). Drawn by the holo
@@ -112,9 +113,10 @@ periodic = false      # also sweep every interval_min..interval_max seconds
 interval_min = 5.0    # shortest time from one sweep's start to the next, in seconds
 interval_max = 30.0   # longest
 delay = 0.02          # seconds after a switch before the sweep starts
-duration = 0.99       # seconds for one pass, at a steady pace (the way back takes duration / back_speed)
-back = true           # window switch: after running away from the previous window, come back the way it came
-back_speed = 0.5      # the way back runs at this fraction of the speed (0.5 = half as fast)
+duration = 0.99       # seconds for the run out, at a steady pace (the drift back adds bounce * duration / back_speed)
+bounce = 0.15         # at the far end, drift back this far (fraction of the edge) while fading out (0 = fade out on the way)
+back_speed = 0.5      # the drift back (and a full pass back) runs at this fraction of the speed
+back = false          # window switch: also run a full pass back the way it came
 workspace = ["up", "down"]   # workspace switch: passes up / down the two sides instead ([] = same as a window switch)
 width = 0.088         # bar length (its lines and gaps together), as a fraction of the edge
 lines = 1             # the bar is this many parallel lines; the leading one is white
