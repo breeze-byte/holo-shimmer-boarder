@@ -290,7 +290,10 @@ shader_out = os.path.join(os.path.dirname(colors_json), "shaders", "gradient.gls
 if cfg["bands"]["repeat"] > 1:
     os.makedirs(os.path.dirname(shader_out), exist_ok=True)
     template = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "shaders", "gradient.glsl.in")).read()
-    open(shader_out, "w").write(template.replace("@REPEAT@", str(int(cfg["bands"]["repeat"]))))
+    for key, val in (("@REPEAT@", str(int(cfg["bands"]["repeat"]))),
+                     ("@BAR_WIDTH@", "%.4f" % cfg["sweep"]["width"]), ("@BAR_GAP@", "%.4f" % cfg["sweep"]["gap"])):
+        template = template.replace(key, val)
+    open(shader_out, "w").write(template)
 elif os.path.exists(shader_out):
     os.remove(shader_out)
 with open(colors_json, "w") as f:

@@ -13,6 +13,8 @@ Hyprland's command socket for a fraction of a second:
 - opposites: the glints start as the opposite of the color before them, fading to white
 - shadow: a dark sticker-edge outline (or a faint tint from the gradient) fades in with the border
 - fade:   selecting a window fades the border from the inactive grey to the holo colors
+- sweep:  on a window switch a white and a half-opacity white slanted bar race across the border
+          (drawn by the holo shader; the daemon only sends their position in a control stop)
 """
 import json, os, random, socket, subprocess, sys, threading, time
 
@@ -28,8 +30,13 @@ SHADOW_ON, SHADOW_ALPHA = cfg["shadow"]["enabled"], cfg["shadow"]["alpha"]
 OPP_FADE = cfg["opposites"]["fade"]
 BANDS = cfg["bands"]
 MAX_STOPS = 10   # Hyprland accepts more gradient colors but only draws the first 10
-N_GLINTS = max(0, min(BANDS["highlights"], MAX_STOPS - 2))
-N_COLORS = max(2, min(BANDS["colors"], MAX_STOPS - N_GLINTS))
+SWEEP = cfg["sweep"]
+SHADER = os.path.expanduser("~/.local/state/holo/shaders/gradient.glsl")   # written by gen-holo-border.py
+# The sweep needs the holo shader (it reads the 10th stop as the bar position, not a color).
+SWEEP_ON = SWEEP["enabled"] and os.path.exists(SHADER) and "holoBar" in open(SHADER).read()
+COLOR_STOPS = MAX_STOPS - 1 if SWEEP_ON else MAX_STOPS
+N_GLINTS = max(0, min(BANDS["highlights"], COLOR_STOPS - 2))
+N_COLORS = max(2, min(BANDS["colors"], COLOR_STOPS - N_GLINTS))
 SHIMMER = cfg["shimmer"]
 OUTLINE_ON = cfg["outline"]["enabled"]
 
@@ -43,7 +50,7 @@ send_lock = threading.Lock()    # border commands go out one at a time, in the o
 focus_evt = threading.Event()   # wakes the main loop the moment focus changes
 sent_at = 0.0                   # when we last sent a border command
 resend = threading.Event()      # Hyprland reloaded its config and reset the border: send it again
-state = {"colors": None, "angle": float(ANGLE), "outline": "rgba(00000000)"}   # latest border, shared with the event thread
+state = {"colors": None, "angle": float(ANGLE), "outline": "rgba(00000000)", "sweep": [0, 0, 0, 0]}   # latest border, shared with the event thread
 
 def ease(x):
     """Smootherstep: 0 -> 1 with zero speed and acceleration at both ends."""
@@ -100,6 +107,15 @@ def stop_colors(layout, pal, since_focus, now):
             out.append([round(a + (b - a) * k) for a, b in zip(sample(pal["comp"], pos + shift), pal["white"])])
     return out
 
+def sweep_stop(since_focus):
+    """The control stop for the holo shader: black, with the sweep position in its alpha
+    (0 = no sweep, 1..255 = start..end)."""
+    x = since_focus / SWEEP["duration"]
+    if not 0.0 <= x < 1.0:
+        return [0, 0, 0, 0]
+    x = 1 - (1 - x) ** 2   # ease out: fast start, settling at the far corner
+    return [0, 0, 0, 1 + round((1 - x if SWEEP["reverse"] else x) * 254)]
+
 def shadow_color(colors, angle, t):
     """Outline color, or a tint = the gradient's color at this angle (skipping the white stops), faded in by t."""
     if OUTLINE_ON:
@@ -118,6 +134,8 @@ def eval_colors(colors, t, angle, shadow_t=None):
     if SHADOW_ON or OUTLINE_ON:
         sh = ',decoration={shadow={color="%s"}}' % shadow_color(colors, angle, t if shadow_t is None else shadow_t)
     cl = ",".join('"rgba(%02x%02x%02x%02x)"' % tuple(round(g + (v - g) * t) for g, v in zip(INACTIVE, c)) for c in colors)
+    if SWEEP_ON:
+        cl += ',"rgba(%02x%02x%02x%02x)"' % tuple(state["sweep"])
     return "eval hl.config({general={col={active_border={colors={%s},angle=%.1f}}}%s})" % (cl, angle % 360, sh)
 
 def wallpaper_stamp():
@@ -184,7 +202,7 @@ def main():
         # 60 updates a second while a window switch is still fading, the shimmer rate after that;
         # with the shimmer off, sleep until the next focus event (waking now and then to check
         # for a new wallpaper or theme).
-        busy = time.monotonic() - focus_at < max(FADE_IN, OPP_FADE, SHIMMER["seconds_per_band"]) + 0.1
+        busy = time.monotonic() - focus_at < max(FADE_IN, OPP_FADE, SHIMMER["seconds_per_band"], SWEEP["duration"]) + 0.1
         flowing = SHIMMER["enabled"] and SHIMMER["continuous"]
         next_tick += 1 / HZ if busy else 1 / SHIMMER["updates_per_second"] if flowing else 1.0
         if focus_evt.wait(max(0.0, next_tick - time.monotonic())):   # woken early by a focus change
@@ -211,7 +229,7 @@ def main():
                 if layout_for != focus_at:        # new window: a fresh random arrangement (hidden by the fade-in)
                     layout, layout_for = new_layout(len(pal["ring"])), focus_at
                 colors = stop_colors(layout, pal, since, time.monotonic())
-                state["colors"], state["angle"] = colors, angle
+                state["colors"], state["angle"], state["sweep"] = colors, angle, sweep_stop(since)
                 cmd = eval_colors(colors, 1.0 if NATIVE_FADE else ease(since / FADE_IN), angle)
                 if cmd != last_cmd:               # nothing visibly changed: don't make Hyprland redo the border
                     send(cmd)
