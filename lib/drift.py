@@ -13,7 +13,7 @@ Hyprland's command socket for a fraction of a second:
 - opposites: the glints start as the opposite of the color before them, fading to white
 - shadow: a dark sticker-edge outline (or a faint tint from the gradient) fades in with the border
 - fade:   selecting a window fades the border from the inactive grey to the holo colors
-- sweep:  on a window switch a half-opacity white bar runs along the top or bottom edge (random),
+- sweep:  on a window switch a half-opacity white bar runs along the top and bottom edges together,
           in the direction you moved
           (drawn by the holo shader; the daemon only sends their position in a control stop)
 """
@@ -122,9 +122,9 @@ def sweep_stop(since_focus):
 
 def pick_sweep_mode(prev, new):
     """The sweep for a switch from window prev to window new (addresses): a random edge (or the
-    configured one), running the way you moved: left to right if new is right of prev, else right
+    configured one; with "both" the shader runs it along the top and bottom together), running the way you moved: left to right if new is right of prev, else right
     to left. Vertical moves (same column) run left to right."""
-    edge = SWEEP["edge"] if SWEEP["edge"] in ("top", "bottom") else random.choice(("top", "bottom"))
+    edge = SWEEP["edge"] if SWEEP["edge"] in ("top", "bottom", "both") else random.choice(("top", "bottom"))   # "both": the shader draws both
     leftward = False
     if prev:
         try:

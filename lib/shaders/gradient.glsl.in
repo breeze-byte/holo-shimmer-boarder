@@ -15,6 +15,7 @@
 #define HOLO_BAR_WIDTH @BAR_WIDTH@   // bar length, as a fraction of the edge
 #define HOLO_BAR_SOFT 0.01           // edge softening, so the bar doesn't alias
 #define HOLO_SWEEP_DIST @SWEEP_DIST@ // how far along the edge the bar travels: 1 = to the right corner
+#define HOLO_SWEEP_BOTH @SWEEP_BOTH@   // 1: the bar runs along the top and bottom edges together (mode bit 0 ignored)
 #define HOLO_SWEEP_OPACITY @SWEEP_OPACITY@ // the bar's white opacity
 
 #ifndef ALLOW_INCLUDES
@@ -54,10 +55,11 @@ vec4 holoColor(vec4 gradient[10], int gradientLength, float along) {
     return gradient[hi] * f + gradient[lo] * (1.0 - f);
 }
 
-// holo: where a border pixel sits on the sweep's edge (the top, or the bottom if bottom), 0 at the
-// left corner to 1 at the right; -1 on the other three sides. uv has y = 0 at the top.
+// holo: where a border pixel sits on the sweep's edge (the top, or the bottom if bottom, or the
+// nearer of the two with HOLO_SWEEP_BOTH), 0 at the left corner to 1 at the right; -1 on the other
+// sides. uv has y = 0 at the top.
 float holoPath(vec2 uv, bool bottom) {
-    float d  = bottom ? 1.0 - uv.y : uv.y;   // distance from the sweep's edge
+    float d  = HOLO_SWEEP_BOTH == 1 ? min(uv.y, 1.0 - uv.y) : bottom ? 1.0 - uv.y : uv.y;   // distance from the sweep's edge
     float dl = uv.x, dr = 1.0 - uv.x, dfar = 1.0 - d;
     return d <= dl && d <= dr && d < dfar ? uv.x : -1.0;
 }
