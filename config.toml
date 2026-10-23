@@ -115,10 +115,12 @@ delay = 0.02          # seconds after a switch before the sweep starts
 duration = 0.99       # seconds for one pass, at a steady pace (2 passes: done 2 s after a switch)
 back = true           # window switch: after running away from the previous window, come back the way it came
 workspace = ["up", "down"]   # workspace switch: passes up / down the two sides instead ([] = same as a window switch)
-width = 0.075         # bar length (its lines and gaps together), as a fraction of the edge
+width = 0.11          # bar length (its lines and gaps together), as a fraction of the edge
 lines = 2             # the bar is this many parallel lines; the leading one is white
 line_gap = 0.5        # gap between the lines, as a fraction of one line's width
 line_grey = 0.9       # the other lines' lightness (1 = white like the leading one, lower = greyer)
+rim = 0.2             # a thin darker rim on each side of the bar, so it pops on pale bands (0 = none)
+rim_width = 1.0       # the rim's width, as a fraction of one line's width
 distance = 1.0        # how far along the edge it goes: 1 = all the way to the far corner
 opacity_dark = 0.7    # the bar's white opacity at the start on a dark wallpaper (brightness score 0)
 opacity_bright = 1.0  # ... and on a bright one (score 1); in between it follows the score
