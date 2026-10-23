@@ -56,7 +56,7 @@ sent_at = 0.0                   # when we last sent a border command
 resend = threading.Event()      # Hyprland reloaded its config and reset the border: send it again
 state = {"colors": None, "angle": float(ANGLE), "outline": "rgba(00000000)", "sweep": [0, 0, 0, 0],
          "addr": None,   # the focused window's address ("0x..."), set by the event thread
-         "switch_mode": (0,)}   # the sweep passes for the latest switch (see switch_sweep_mode)   # latest border, shared with the event thread
+         "switch_mode": ((0, 1.0),)}   # the sweep passes for the latest switch (see switch_sweep_mode)   # latest border, shared with the event thread
 
 def ease(x):
     """Smootherstep: 0 -> 1 with zero speed and acceleration at both ends."""
@@ -137,21 +137,21 @@ def next_sweep(after, now):
     previous one started (after), but not before now; mode bit 0 runs it along the sides (else the
     top and bottom), bit 1 runs it backward (right to left, or down). Never, unless sweep.periodic."""
     if not SWEEP["periodic"]:
-        return float("inf"), (0,)
-    return max(now, after + random.uniform(SWEEP["interval_min"], SWEEP["interval_max"])), (sweep_mode(),)
+        return float("inf"), ((0, SWEEP["duration"]),)
+    return max(now, after + random.uniform(SWEEP["interval_min"], SWEEP["interval_max"])), ((sweep_mode(), SWEEP["duration"]),)
 
 def switch_sweep_mode(prev, new):
-    """The sweep passes (modes) for a switch from window prev to window new (addresses).
+    """The sweep passes, (mode, seconds) pairs, for a switch from window prev to window new (addresses).
     Another workspace: the workspace passes (default up the sides, then down). Same workspace: across
     the top and bottom, moving away from where you came from (left to right if new is right of prev,
     else right to left; random with sweep.follow off or for a move straight up or down), then back
-    the way it came (sweep.back)."""
+    the way it came at back_speed (sweep.back)."""
     first = None
     if prev and new:
         try:
             wins = {c["address"]: c for c in json.loads(query("j/clients"))}
             if wins[new]["workspace"]["id"] != wins[prev]["workspace"]["id"] and WORKSPACE_PASSES:
-                return WORKSPACE_PASSES
+                return tuple((m, SWEEP["duration"]) for m in WORKSPACE_PASSES)
             x = {a: c["at"][0] + c["size"][0] / 2 for a, c in wins.items()}
             if SWEEP["follow"] and abs(x[new] - x[prev]) > 1:
                 first = 0 if x[new] > x[prev] else 2
@@ -159,7 +159,10 @@ def switch_sweep_mode(prev, new):
             pass
     if first is None:
         first = sweep_mode()
-    return (first, first ^ 2) if SWEEP["back"] else (first,)   # ^ 2 flips the direction
+    out = ((first, SWEEP["duration"]),)
+    if SWEEP["back"]:   # ^ 2 flips the direction; the way back runs at back_speed
+        out += ((first ^ 2, SWEEP["duration"] / SWEEP["back_speed"]),)
+    return out
 
 def sweep_mode():
     """A random sweep mode: top and bottom, left to right (0) or right to left (2); with sweep.sides
@@ -168,16 +171,19 @@ def sweep_mode():
 
 def sweep_stop(sweep, now):
     """The control stop for the holo shader: black, with the sweep in its alpha: 0 = none, else
-    1 + mode * 63 + step (step 0..62 = start..end, at a steady pace). A sweep is (start time, modes):
-    one pass per mode, back to back."""
-    start, modes = sweep
-    x = (now - start) / SWEEP["duration"]
-    if not 0.0 <= x < len(modes):
+    1 + mode * 63 + step (step 0..62 = start..end, at a steady pace). A sweep is (start time,
+    passes), passes being (mode, seconds) pairs run back to back."""
+    t = now - sweep[0]
+    if t < 0:
         return [0, 0, 0, 0]
-    return [0, 0, 0, 1 + modes[int(x)] * 63 + round((x % 1) * 62)]
+    for mode, secs in sweep[1]:
+        if t < secs:
+            return [0, 0, 0, 1 + mode * 63 + round(t / secs * 62)]
+        t -= secs
+    return [0, 0, 0, 0]
 
 def sweep_end(sweep):
-    return sweep[0] + SWEEP["duration"] * len(sweep[1])
+    return sweep[0] + sum(secs for mode, secs in sweep[1])
 
 def shadow_color(colors, angle, t):
     """Outline color, or a tint = the gradient's color at this angle (skipping the white stops), faded in by t."""
@@ -264,7 +270,7 @@ def watch_focus():
                     if l.startswith(b"activewindowv2>>") and l != last:
                         last = l
                         addr = ("0x" + l[16:].decode().strip()) if l[16:].strip() else None
-                        mode = switch_sweep_mode(state["addr"], addr) if SWEEP_ON and SWEEP["on_switch"] else (0,)
+                        mode = switch_sweep_mode(state["addr"], addr) if SWEEP_ON and SWEEP["on_switch"] else ((0, SWEEP["duration"]),)
                         with send_lock:
                             focus_at = time.monotonic()
                             state["addr"], state["switch_mode"] = addr, mode
