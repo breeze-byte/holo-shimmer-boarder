@@ -21,7 +21,7 @@ like the shimmer on a holo trading card.
   across the top and bottom of the new window's border, away from the window you came from, in a single
   pass (`sweep.bounce` adds a drift back at the end). When you switch workspaces it runs up the sides
   and back down instead (`sweep.workspace`). It fades in and then out to nothing as it crosses, over
-  `sweep.duration` (0.99 s). Its peak opacity follows the wallpaper (70% on a dark one, up to 90% on a
+  `sweep.duration` (0.99 s). Its peak opacity follows the wallpaper (95% on a dark one, up to 100% on a
   bright one). `sweep.periodic` adds random repeats every 5-30 s. The holo shader draws it; the daemon
   only sends its position in the 10th gradient stop, so the bands use 9 colors.
 - **Wallpaper brightness.** The generator scores how bright the wallpaper is (mean perceived lightness,
