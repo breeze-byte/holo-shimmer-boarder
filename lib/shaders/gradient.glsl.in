@@ -10,12 +10,13 @@
 // 1 + mode * 63 + step, where step 0..62 is the position from start to end, mode's bit 0 runs the
 // sweep along the left and right sides (else the top and bottom) and bit 1 runs it backward (right
 // to left, or down; else left to right, or up). The sweep is a white bar on each of the two edges,
-// moving together and fading from HOLO_SWEEP_OPACITY to 0 as they go.
+// moving together, fading in to HOLO_SWEEP_OPACITY and back out to 0 as they go.
 #define HOLO_REPEAT @REPEAT@
 #define HOLO_MIN_STOPS 10
 #define HOLO_BAR_WIDTH @BAR_WIDTH@   // bar length, as a fraction of the edge
 #define HOLO_BAR_SOFT 0.01           // edge softening, so the bar doesn't alias
 #define HOLO_SWEEP_DIST @SWEEP_DIST@ // how far along the edge the bars travel: 1 = to the far corner
+#define HOLO_SWEEP_FADE_IN @SWEEP_FADE_IN@ // fraction of the run spent fading in, before fading back out
 #define HOLO_SWEEP_OPACITY @SWEEP_OPACITY@ // the bar's white opacity
 
 #ifndef ALLOW_INCLUDES
@@ -78,7 +79,9 @@ vec4 holoSweep(vec4 c, vec2 uv, vec4 gradient[10], int gradientLength) {
     if (mode >= 2)   // backward: right to left, or down
         pos = 1.0 - pos;
     float head = mix(-0.5 * HOLO_BAR_WIDTH, HOLO_SWEEP_DIST, sweep);
-    float k    = HOLO_SWEEP_OPACITY * (1.0 - sweep) * holoBar(pos, head);   // fades evenly to 0 over the run
+    // eases in to full opacity over the first HOLO_SWEEP_FADE_IN of the run, then fades evenly to 0
+    float env  = smoothstep(0.0, HOLO_SWEEP_FADE_IN, sweep) * clamp((1.0 - sweep) / (1.0 - HOLO_SWEEP_FADE_IN), 0.0, 1.0);
+    float k    = HOLO_SWEEP_OPACITY * env * holoBar(pos, head);
     return mix(c, vec4(1.0, 0.0, 0.0, c[3]), k);   // toward white (OkLab), keeping the border's opacity
 }
 
