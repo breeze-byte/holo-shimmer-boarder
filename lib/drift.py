@@ -145,7 +145,9 @@ def border_cmd(colors, t, angle):
     cl = " ".join("rgba(%02x%02x%02x%02x)" % tuple(round(g + (v - g) * t) for g, v in zip(INACTIVE, c)) for c in colors)
     if SWEEP_ON:
         cl += " rgba(%02x%02x%02x%02x)" % tuple(state["sweep"])
-    return ('dispatch hl.dsp.window.set_prop({ prop = "active_border_color", value = "%s %ddeg", window = "address:%s" })'
+    # Hyprland 0.56's set_prop drops the first color of a gradient value (checked: "red green blue"
+    # comes back as "green blue"), so lead with a throwaway one.
+    return ('dispatch hl.dsp.window.set_prop({ prop = "active_border_color", value = "rgba(00000000) %s %ddeg", window = "address:%s" })'
             % (cl, round(angle) % 360, state["addr"]))
 
 def shadow_cmd(colors, angle, t):
