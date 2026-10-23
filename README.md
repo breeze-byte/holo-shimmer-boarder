@@ -140,3 +140,6 @@ idle cost to nearly nothing.
 ## License
 
 MIT
+
+`lib/shaders/gradient.glsl.in` is derived from Hyprland's `gradient.glsl` and keeps Hyprland's BSD 3-Clause
+license (copyright vaxerski); the notice is at the top of that file.
