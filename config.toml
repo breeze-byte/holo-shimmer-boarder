@@ -119,16 +119,16 @@ back_speed = 0.5      # the drift back (and a full pass back) runs at this fract
 back = false          # window switch: also run a full pass back the way it came
 workspace = ["up", "down"]   # workspace switch: passes up / down the two sides instead ([] = same as a window switch)
 style = "glow"        # "glow": a soft highlight that brightens the bands' own colors; "bars": hard white lines
-glow_tint = 0.6       # glow: how much of the band's color stays at its brightest point (1 = all, 0 = pure white)
-width = 0.2           # glow: how wide it is (it fades out about half this either side); bars: their total length
+glow_tint = 0.3       # glow: how much of the band's color stays at its brightest point (1 = all, 0 = pure white)
+width = 0.14          # glow: how wide it is (it fades out about half this either side); bars: their total length
 lines = 1             # bars: this many parallel lines; the leading one is white
 line_gap = 0.5        # bars: gap between the lines, as a fraction of one line's width
 line_grey = 0.9       # bars: the other lines' lightness (1 = white like the leading one, lower = greyer)
 rim = 0.2             # bars: a thin darker rim on each side of the bar, so it pops on pale bands (0 = none)
 rim_width = 1.0       # bars: the rim's width, as a fraction of one line's width
 distance = 1.0        # how far along the edge it goes: 1 = all the way to the far corner
-opacity_dark = 0.7    # the bar's white opacity at the start on a dark wallpaper (brightness score 0)
-opacity_bright = 0.9  # ... and on a bright one (score 1); in between it follows the score
+opacity_dark = 0.95   # the bar's white opacity at the start on a dark wallpaper (brightness score 0)
+opacity_bright = 1.0  # ... and on a bright one (score 1); in between it follows the score
 fade_in = 0.25        # fraction of the run spent easing in to that opacity; then it fades evenly to 0 by the end
 sides = false         # true: some sweeps run up or down the two sides instead of across the top and bottom
 
