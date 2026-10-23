@@ -50,7 +50,8 @@ fade = 1.5                 # seconds for them to fade back to their normal color
 # overriding border.alpha. Brighter wallpaper = more opaque border so pale colors stay visible.
 enabled = true
 min_alpha = 0.69      # border opacity on a dark wallpaper
-max_alpha = 0.9       # border opacity on a bright wallpaper (ceiling)
+max_alpha = 1.0       # border opacity on a bright wallpaper
+solid_above = 0.85    # a wallpaper scoring above this gets a fully opaque border
 dark_l = 0.2          # wallpaper lightness (OKLCH L) that scores 0
 bright_l = 0.8        # ... and 1
 
@@ -93,7 +94,7 @@ direction = -1             # 1 or -1: which way the bands flow; -1 with angle 31
 updates_per_second = 30   # update rate when continuous (the switch fade uses fade_in.updates_per_second)
 
 [sweep]
-# When you switch windows a half-opacity white bar runs along the new window's border once its
+# When you switch windows a white bar runs along the new window's border once its
 # fade-in is done (on_switch), then again every interval_min..interval_max seconds (random, start
 # to start): across the top and bottom together (left to right or right to left) or up or
 # down the two sides together, picked at random, fading from `opacity` to 0 as it goes. Drawn by
@@ -106,7 +107,7 @@ interval_max = 30.0   # longest
 duration = 2.0        # seconds for one sweep, at a steady pace
 width = 0.1           # bar length, as a fraction of the edge
 distance = 1.0        # how far along the edge it goes: 1 = all the way to the far corner
-opacity = 0.5         # the bar's white opacity at the start; it fades evenly to 0 by the end
+opacity = 0.7         # the bar's white opacity at the start; it fades evenly to 0 by the end
 
 [outline]
 # A dark keyline around the border, like a sticker's edge (replaces the tinted shadow).

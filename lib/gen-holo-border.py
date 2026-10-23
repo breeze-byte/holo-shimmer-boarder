@@ -140,8 +140,11 @@ def wallpaper_brightness():
 
 BRIGHTNESS = wallpaper_brightness()
 if TR["enabled"]:
-    # Brighter backdrop -> more opaque border so the pale colors don't wash out.
+    # Brighter backdrop -> more opaque border so the pale colors don't wash out; above solid_above
+    # the border is fully opaque.
     ALPHA = min(1.0, TR["min_alpha"] + (TR["max_alpha"] - TR["min_alpha"]) * BRIGHTNESS)
+    if BRIGHTNESS > TR["solid_above"]:
+        ALPHA = 1.0
 
 def adapt(v):
     """Boost one color by how close it is to the dominant color behind the border.

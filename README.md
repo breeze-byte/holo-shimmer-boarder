@@ -17,10 +17,10 @@ like the shimmer on a holo trading card.
   `shimmer.seconds_per_band` (2 s), costing a few % of a core in Hyprland. `shimmer.continuous = false`
   fades once per window switch instead, then holds still and costs nothing until the next switch.
 - **Sweep.** Right after a window switch's fade-in, then every 5-30 s (random, `sweep.interval_min` /
-  `interval_max`), a half-opacity white bar runs along the focused window's border: across the top and bottom together or up or down
-  the sides together, in a random direction, fading to nothing over `sweep.duration` (2 s). The holo
-  shader draws it; the daemon only sends its position in the 10th gradient stop, so the bands use 9
-  colors.
+  `interval_max`), a white bar (70% opacity) runs along the focused window's border: across the top and
+  bottom together or up or down the sides together, in a random direction, fading to nothing over
+  `sweep.duration` (2 s). The holo shader draws it; the daemon only sends its position in the 10th
+  gradient stop, so the bands use 9 colors.
 - **Wallpaper brightness.** The generator scores how bright the wallpaper is (mean perceived lightness,
   0 = dark, 1 = bright). That score sets the border opacity (69% on a dark wallpaper up to 100% on a bright
   one), how hard the colors are pushed away from the wallpaper's lightness (contrast target 2.0 up to 4.0),
@@ -95,6 +95,7 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 | `opposites.fade` | seconds for the silvers to fade back from their opposite color |
 | `shadow.range` / `alpha` / `render_power` | size, opacity and softness of the focused-window shadow |
 | `transparency.min_alpha` / `max_alpha` | border opacity on a dark and a bright wallpaper |
+| `transparency.solid_above` | a wallpaper scoring above this gets a fully opaque border |
 | `transparency.dark_l` / `bright_l` | wallpaper lightness that scores 0 and 1 |
 | `legibility.target_dark` / `target_bright` | contrast the colors must reach against a dark / bright wallpaper |
 | `vividness.max_boost` | extra chroma on a bright wallpaper |
