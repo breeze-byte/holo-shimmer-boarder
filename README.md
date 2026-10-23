@@ -17,7 +17,7 @@ like the shimmer on a holo trading card.
   `shimmer.seconds_per_band` (2 s), costing a few % of a core in Hyprland. `shimmer.continuous = false`
   fades once per window switch instead, then holds still and costs nothing until the next switch.
 - **Switch sweep.** On every window switch a white bar and a half-opacity white bar race diagonally
-  across the border, corner to corner, in `sweep.duration` (0.3 s). The holo shader draws them; the
+  across the border, corner to corner, at a steady pace in `sweep.duration` (0.6 s). The holo shader draws them; the
   daemon only sends their position in the 10th gradient stop, so the bands use 9 colors.
 - **Wallpaper brightness.** The generator scores how bright the wallpaper is (mean perceived lightness,
   0 = dark, 1 = bright). That score sets the border opacity (69% on a dark wallpaper up to 100% on a bright

@@ -13,7 +13,7 @@ DEFAULTS = {
     "opposites": {"fade": 1.5},
     "bands": {"colors": 10, "highlights": 0, "wide": 0, "repeat": 3},
     "shimmer": {"enabled": True, "seconds_per_band": 2.0, "direction": -1, "continuous": True, "updates_per_second": 30},
-    "sweep": {"enabled": True, "duration": 0.3, "width": 0.025, "gap": 0.06, "reverse": False},
+    "sweep": {"enabled": True, "duration": 0.6, "width": 0.05, "gap": 0.11, "reverse": False},
     "outline": {"enabled": False, "range": 2, "render_power": 4, "min_alpha": 0.25, "max_alpha": 0.85},
     "transparency": {"enabled": True, "min_alpha": 0.69, "max_alpha": 0.9, "dark_l": 0.2, "bright_l": 0.8},
     "legibility": {"enabled": True, "target_dark": 2.4, "target_bright": 4.8, "max_shift": 0.45, "min_lightness": 0.66, "max_lightness": 0.94},

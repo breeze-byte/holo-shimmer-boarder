@@ -115,7 +115,7 @@ def sweep_stop(since_focus):
     x = (since_focus - (FADE_IN if NATIVE_FADE else 0.0)) / SWEEP["duration"]
     if not 0.0 <= x < 1.0:
         return [0, 0, 0, 0]
-    x = 1 - (1 - x) ** 2   # ease out: fast start, settling at the far corner
+    # steady pace: no easing, so the bars spend the same time on the sides as on the top
     return [0, 0, 0, 1 + round((1 - x if SWEEP["reverse"] else x) * 254)]
 
 def shadow_color(colors, angle, t):

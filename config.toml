@@ -98,9 +98,9 @@ updates_per_second = 30   # update rate when continuous (the switch fade uses fa
 # Drawn by the holo shader, so it needs bands.repeat > 1 on Hyprland 0.56; it uses the 10th
 # gradient stop, leaving 9 for colors.
 enabled = true
-duration = 0.3        # seconds for the bars to cross
-width = 0.025         # bar width, as a fraction of the window's diagonal
-gap = 0.06            # distance from the white bar to the trailing one (same units)
+duration = 0.6        # seconds for the bars to cross (at a steady pace)
+width = 0.05          # bar width, as a fraction of the window's diagonal
+gap = 0.11            # distance from the white bar to the trailing one (same units)
 reverse = false       # true: run from the top-right corner instead of the bottom-left
 
 [outline]
