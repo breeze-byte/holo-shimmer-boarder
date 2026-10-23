@@ -13,7 +13,8 @@ Hyprland's command socket for a fraction of a second:
 - opposites: the glints start as the opposite of the color before them, fading to white
 - shadow: a dark sticker-edge outline (or a faint tint from the gradient) fades in with the border
 - fade:   selecting a window fades the border from the inactive grey to the holo colors
-- sweep:  on a window switch a half-opacity white bar runs left to right along the top (or bottom) edge
+- sweep:  on a window switch a half-opacity white bar runs along the top or bottom edge (random),
+          in the direction you moved
           (drawn by the holo shader; the daemon only sends their position in a control stop)
 """
 import json, os, random, socket, subprocess, sys, threading, time
@@ -46,6 +47,7 @@ WALLPAPER = os.path.expanduser("~/.local/state/omarchy/current/background")
 GENERATOR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gen-holo-border.py")
 WALLPAPER_EVERY = 3.0   # seconds between wallpaper-change checks
 focus_at = -1e9   # when focus last changed (set by the event thread)
+sweep_mode = 0    # the current switch's sweep edge and direction (see sweep_stop)
 send_lock = threading.Lock()    # border commands go out one at a time, in the order they were decided
 focus_evt = threading.Event()   # wakes the main loop the moment focus changes
 sent_at = 0.0                   # when we last sent a border command
@@ -108,15 +110,29 @@ def stop_colors(layout, pal, since_focus, now):
     return out
 
 def sweep_stop(since_focus):
-    """The control stop for the holo shader: black, with the sweep position in its alpha
-    (0 = no sweep, 1..255 = start..end)."""
+    """The control stop for the holo shader: black, with the sweep in its alpha: 0 = none, else
+    1 + mode * 63 + step (step 0..62 = start..end; mode bit 0 = bottom edge, bit 1 = right to left)."""
     # Hyprland's own grey -> holo fade (fade_in.native) draws the gradient it had at the switch and
     # ignores updates until it's done, so the sweep waits for it.
     x = (since_focus - (FADE_IN if NATIVE_FADE else 0.0)) / SWEEP["duration"]
     if not 0.0 <= x < 1.0:
         return [0, 0, 0, 0]
     # steady pace: no easing, so the bars spend the same time on the sides as on the top
-    return [0, 0, 0, 1 + round(x * 254)]
+    return [0, 0, 0, 1 + sweep_mode * 63 + round(x * 62)]
+
+def pick_sweep_mode(prev, new):
+    """The sweep for a switch from window prev to window new (addresses): a random edge (or the
+    configured one), running the way you moved: left to right if new is right of prev, else right
+    to left. Vertical moves (same column) run left to right."""
+    edge = SWEEP["edge"] if SWEEP["edge"] in ("top", "bottom") else random.choice(("top", "bottom"))
+    leftward = False
+    if prev:
+        try:
+            x = {c["address"]: c["at"][0] + c["size"][0] / 2 for c in json.loads(query("j/clients"))}
+            leftward = x["0x" + new] < x["0x" + prev] - 1
+        except (KeyError, ValueError, OSError):
+            pass
+    return (1 if edge == "bottom" else 0) + (2 if leftward else 0)
 
 def shadow_color(colors, angle, t):
     """Outline color, or a tint = the gradient's color at this angle (skipping the white stops), faded in by t."""
@@ -147,19 +163,25 @@ def wallpaper_stamp():
     except OSError:
         return None
 
-def send(cmd):
-    global sent_at
-    sent_at = time.monotonic()
+def query(cmd):
+    """Send a command over Hyprland's command socket and return its reply."""
     s = socket.socket(socket.AF_UNIX)
     s.settimeout(1)
     s.connect(SOCK)
     s.send(cmd.encode())
-    while s.recv(65536):
-        pass
+    reply = b""
+    while chunk := s.recv(65536):
+        reply += chunk
     s.close()
+    return reply.decode()
+
+def send(cmd):
+    global sent_at
+    sent_at = time.monotonic()
+    query(cmd)
 
 def watch_focus():
-    global focus_at
+    global focus_at, sweep_mode
     path = SOCK.replace(".socket.sock", ".socket2.sock")
     while True:
         try:
@@ -180,9 +202,10 @@ def watch_focus():
                     # Hyprland repeats this event on every title change (e.g. a terminal
                     # spinner), so only a different window address counts as a switch.
                     if l.startswith(b"activewindowv2>>") and l != last:
-                        last = l
+                        prev, last = last, l
+                        mode = pick_sweep_mode(prev and prev[16:].decode(), l[16:].decode()) if SWEEP_ON else 0
                         with send_lock:
-                            focus_at = time.monotonic()
+                            focus_at, sweep_mode = time.monotonic(), mode
                             # Hyprland has already painted the new window in full holo; drop to
                             # grey right away so the fade starts from grey, not from a flash.
                             if state["colors"] and not NATIVE_FADE:

@@ -93,15 +93,16 @@ direction = -1             # 1 or -1: which way the bands flow; -1 with angle 31
 updates_per_second = 30   # update rate when continuous (the switch fade uses fade_in.updates_per_second)
 
 [sweep]
-# On a window switch one half-opacity white bar runs along the top (or bottom) edge of the border,
-# from the left corner to the right one, fading out at the end. Drawn by the holo shader, so it
+# On a window switch one half-opacity white bar runs along the top or bottom edge of the border,
+# corner to corner in the direction you moved (left to right when you move right, right to left
+# when you move left), fading from `opacity` to 0 as it goes. Drawn by the holo shader, so it
 # needs bands.repeat > 1 on Hyprland 0.56; it uses the 10th gradient stop, leaving 9 for colors.
 enabled = true
 duration = 1.0        # seconds for the run, at a steady pace, starting the moment you switch
 width = 0.1           # bar length, as a fraction of the edge
-distance = 1.0        # how far along the edge it goes before fading: 1 = to the right corner
-opacity = 0.5         # the bar's white opacity
-edge = "top"          # "top" or "bottom"
+distance = 1.0        # how far along the edge it goes: 1 = all the way to the far corner
+opacity = 0.5         # the bar's white opacity at the start; it fades evenly to 0 by the end
+edge = "random"       # "random" (picked on each switch), "top" or "bottom"
 
 [outline]
 # A dark keyline around the border, like a sticker's edge (replaces the tinted shadow).

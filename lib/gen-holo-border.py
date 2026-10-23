@@ -292,7 +292,7 @@ if cfg["bands"]["repeat"] > 1:
     template = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "shaders", "gradient.glsl.in")).read()
     for key, val in (("@REPEAT@", str(int(cfg["bands"]["repeat"]))),
                      ("@BAR_WIDTH@", "%.4f" % cfg["sweep"]["width"]), ("@SWEEP_DIST@", "%.4f" % cfg["sweep"]["distance"]),
-                     ("@SWEEP_OPACITY@", "%.4f" % cfg["sweep"]["opacity"]), ("@EDGE_TOP@", "0" if cfg["sweep"]["edge"] == "bottom" else "1")):
+                     ("@SWEEP_OPACITY@", "%.4f" % cfg["sweep"]["opacity"])):
         template = template.replace(key, val)
     open(shader_out, "w").write(template)
 elif os.path.exists(shader_out):
