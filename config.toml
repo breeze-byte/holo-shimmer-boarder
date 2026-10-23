@@ -93,14 +93,16 @@ direction = -1             # 1 or -1: which way the bands flow; -1 with angle 31
 updates_per_second = 30   # update rate when continuous (the switch fade uses fade_in.updates_per_second)
 
 [sweep]
-# Every interval_min..interval_max seconds (random, start to start) a half-opacity white bar runs along the focused
-# window's border: across the top and bottom together (left to right or right to left) or up or
-# down the two sides together, picked at random, fading from `opacity` to 0 as it goes. Nothing
-# runs on a window switch. Drawn by the holo shader, so it needs bands.repeat > 1 on Hyprland 0.56;
-# it uses the 10th gradient stop, leaving 9 for colors.
+# When you switch windows a half-opacity white bar runs along the new window's border once its
+# fade-in is done (on_switch), then again every interval_min..interval_max seconds (random, start
+# to start): across the top and bottom together (left to right or right to left) or up or
+# down the two sides together, picked at random, fading from `opacity` to 0 as it goes. Drawn by
+# the holo shader, so it needs bands.repeat > 1 on Hyprland 0.56; it uses the 10th gradient stop,
+# leaving 9 for colors.
 enabled = true
-interval_min = 1.0    # shortest time from one sweep's start to the next, in seconds
-interval_max = 60.0   # longest wait
+on_switch = true      # also sweep right after a window switch's fade-in
+interval_min = 5.0    # shortest time from one sweep's start to the next, in seconds
+interval_max = 30.0   # longest
 duration = 2.0        # seconds for one sweep, at a steady pace
 width = 0.1           # bar length, as a fraction of the edge
 distance = 1.0        # how far along the edge it goes: 1 = all the way to the far corner

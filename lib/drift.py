@@ -13,7 +13,7 @@ Hyprland's command socket for a fraction of a second:
 - opposites: the glints start as the opposite of the color before them, fading to white
 - shadow: a dark sticker-edge outline (or a faint tint from the gradient) fades in with the border
 - fade:   selecting a window fades the border from the inactive grey to the holo colors
-- sweep:  every 1-60 s (random) a half-opacity white bar runs along the focused window's border,
+- sweep:  after a switch's fade-in, then every 5-30 s (random), a white bar runs along the focused window's border,
           across the top and bottom or along the sides, in a random direction
           (drawn by the holo shader; the daemon only sends their position in a control stop)
 """
@@ -241,6 +241,8 @@ def main():
                 since = time.monotonic() - focus_at
                 if layout_for != focus_at:        # new window: a fresh random arrangement (hidden by the fade-in)
                     layout, layout_for = new_layout(len(pal["ring"])), focus_at
+                    if SWEEP["on_switch"]:        # and a sweep once the fade-in is done (Hyprland's own fade ignores updates)
+                        sweep = (focus_at + FADE_IN + 0.05, random.randrange(4))
                 colors = stop_colors(layout, pal, since, time.monotonic())
                 now = time.monotonic()
                 if now >= sweep[0] + SWEEP["duration"]:   # this sweep is over: schedule the next one
