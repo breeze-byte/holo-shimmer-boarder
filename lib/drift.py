@@ -108,11 +108,11 @@ def stop_colors(layout, pal, since_focus, now):
             out.append([round(a + (b - a) * k) for a, b in zip(sample(pal["comp"], pos + shift), pal["white"])])
     return out
 
-def next_sweep(now):
-    """A new random sweep: (start time, mode). It starts interval_min..interval_max seconds from
-    now; mode bit 0 runs it along the sides (else the top and bottom), bit 1 runs it backward
-    (right to left, or down)."""
-    return now + random.uniform(SWEEP["interval_min"], SWEEP["interval_max"]), random.randrange(4)
+def next_sweep(after, now):
+    """A new random sweep: (start time, mode). It starts interval_min..interval_max seconds after
+    the previous one started (after), but not before now; mode bit 0 runs it along the sides (else
+    the top and bottom), bit 1 runs it backward (right to left, or down)."""
+    return max(now, after + random.uniform(SWEEP["interval_min"], SWEEP["interval_max"])), random.randrange(4)
 
 def sweep_stop(sweep, now):
     """The control stop for the holo shader: black, with the sweep in its alpha: 0 = none, else
@@ -205,7 +205,7 @@ def main():
     angle = float(ANGLE)
     last_cmd = None
     next_tick = time.monotonic()
-    sweep = next_sweep(next_tick)
+    sweep = next_sweep(next_tick, next_tick)
     while True:
         # 60 updates a second while a window switch is still fading, the shimmer rate after that;
         # with the shimmer off, sleep until the next focus event (waking now and then to check
@@ -244,7 +244,7 @@ def main():
                 colors = stop_colors(layout, pal, since, time.monotonic())
                 now = time.monotonic()
                 if now >= sweep[0] + SWEEP["duration"]:   # this sweep is over: schedule the next one
-                    sweep = next_sweep(now)
+                    sweep = next_sweep(sweep[0], now)
                 state["colors"], state["angle"], state["sweep"] = colors, angle, sweep_stop(sweep, now)
                 cmd = eval_colors(colors, 1.0 if NATIVE_FADE else ease(since / FADE_IN), angle)
                 if cmd != last_cmd:               # nothing visibly changed: don't make Hyprland redo the border
