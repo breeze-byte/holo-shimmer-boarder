@@ -16,6 +16,8 @@
 #define HOLO_BAR_WIDTH @BAR_WIDTH@   // total length of the bar's lines and gaps, as a fraction of the edge
 #define HOLO_BAR_LINES @BAR_LINES@   // the bar is this many parallel lines
 #define HOLO_BAR_GAP @BAR_GAP@       // gap between lines, as a fraction of one line's width
+#define HOLO_GLOW @GLOW@             // 1: a soft glow that brightens the bands' own colors; 0: hard bars mixed toward white
+#define HOLO_GLOW_TINT @GLOW_TINT@   // glow: how much of the band's color stays at the brightest point (1 = all, 0 = pure white)
 #define HOLO_BAR_RIM @BAR_RIM@       // how much darker (OkLab lightness) a thin rim on each side of the bar is
 #define HOLO_BAR_RIM_WIDTH @BAR_RIM_WIDTH@ // the rim's width, as a fraction of one line's width
 #define HOLO_BAR_GREY @BAR_GREY@     // OkLab lightness of all but the leading line (1 = white like the leading one)
@@ -117,6 +119,17 @@ vec4 holoSweep(vec4 c, vec2 uv, vec4 gradient[10], int gradientLength) {
         // eases in to full opacity over the first HOLO_SWEEP_FADE_IN of the run, then fades evenly to 0
         head = mix(-0.5 * HOLO_BAR_WIDTH, HOLO_SWEEP_DIST, sweep);
         env  = smoothstep(0.0, HOLO_SWEEP_FADE_IN, sweep) * clamp((1.0 - sweep) / (1.0 - HOLO_SWEEP_FADE_IN), 0.0, 1.0);
+    }
+    if (HOLO_GLOW == 1) {
+        // Light, not a shape: a bell curve of brightness (it fades to nothing about HOLO_BAR_WIDTH / 2
+        // either side of its center) that lifts the band's own color toward white and keeps most of
+        // its hue, like a highlight passing over foil.
+        float d = (pos - head) / (0.25 * HOLO_BAR_WIDTH);
+        float g = HOLO_SWEEP_OPACITY * env * exp(-d * d);
+        c[0] += g * (1.0 - c[0]);                         // OkLab lightness toward 1
+        c[1] *= 1.0 - g * (1.0 - HOLO_GLOW_TINT);         // chroma eases off a little, so it reads as light
+        c[2] *= 1.0 - g * (1.0 - HOLO_GLOW_TINT);
+        return c;
     }
     vec2  bar  = holoBar(pos, head);
     float k    = HOLO_SWEEP_OPACITY * env * bar[0];
