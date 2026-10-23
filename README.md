@@ -110,14 +110,18 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 
 ## How it works
 
-`gen-holo-border.py` turns the theme's `colors.toml` into a gradient and writes it where Hyprland loads it.
-`drift.py` (the name is historical; the gradient no longer drifts) is a small daemon that listens for
-Hyprland's focus events. When you select a window it sends Hyprland a fresh random arrangement of the colors and,
-for about half a second, 60 updates a second to run the fade and the opposite-color flash. The rest of the time
-it sends nothing. If Hyprland reloads its config (a theme or wallpaper change) it sends the border again.
+`gen-holo-border.py` builds the band colors (from the sticker palette or the theme's `colors.toml`, adjusted for
+the wallpaper), writes the gradient where Hyprland loads it, and writes the patched border shader.
+`drift.py` is a small daemon that listens for Hyprland's focus events. It sets the focused window's own border
+color (`hl.dsp.window.set_prop`, far cheaper for Hyprland than changing the config): 10 updates a second for the
+slow neighbor fade, and 60 a second for about a second after a switch for the fade-in and the sweep. When you
+switch away, it parks the old window's border at grey so its next fade-in starts clean. If Hyprland reloads its
+config (a theme or wallpaper change) it sends the border again. `holo off` stops the daemon and sets every
+window's border back to Omarchy's.
 
-Cost: with the border on and idle, Hyprland uses no more CPU than with the border off. A window switch costs a
-short burst.
+Cost (measured on a 4K screen): about 1.5% of one CPU core for the daemon and 2-3% extra for Hyprland while the
+border is on, and about 15 MB of memory. Turning the neighbor fade off (`shimmer.continuous = false`) brings the
+idle cost to nearly nothing.
 
 ## Limitations
 
