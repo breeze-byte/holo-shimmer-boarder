@@ -95,7 +95,7 @@ updates_per_second = 30   # update rate when continuous (the switch fade uses fa
 [outline]
 # A dark keyline around the border, like a sticker's edge (replaces the tinted shadow).
 # Its opacity follows the wallpaper brightness score: barely there on a dark wallpaper.
-enabled = true
+enabled = false
 range = 2             # width in px
 render_power = 4      # higher = crisper edge
 min_alpha = 0.25      # opacity on a dark wallpaper
