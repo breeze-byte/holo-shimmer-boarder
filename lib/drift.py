@@ -150,9 +150,11 @@ def watch_focus():
                 buf += chunk
                 *lines, buf = buf.split(b"\n")
                 for l in lines:
-                    # Our own border commands also report "configreloaded"; only a reload we did not
-                    # cause (theme or wallpaper change) resets the border and needs a re-send.
-                    if l.startswith(b"configreloaded") and time.monotonic() - sent_at > 0.3:
+                    # A reload (theme or wallpaper change, holo refresh) resets the border to the static
+                    # holo-border.lua gradient: always re-send. Our own eval commands don't emit this
+                    # event (checked on 0.56), so this can't loop, and ignoring reloads that land right
+                    # after a send of ours would leave the fallback gradient up.
+                    if l.startswith(b"configreloaded"):
                         resend.set()
                         focus_evt.set()
                     # Hyprland repeats this event on every title change (e.g. a terminal
