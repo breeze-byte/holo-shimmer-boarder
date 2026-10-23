@@ -68,6 +68,17 @@ if [[ $KEYBIND == 1 ]]; then
   add_block "$HYPR/bindings.lua" "o.bind(\"$KEY\", \"Toggle holo border\", \"$BIN/holo toggle\")"
 fi
 
+# A holo line outside our blocks (e.g. wired up by hand before installing) runs twice: two toggle
+# binds turn it off and straight back on, so the key seems to do nothing. Point them out.
+for f in bindings.lua autostart.lua; do
+  [[ -f $HYPR/$f ]] || continue
+  dups=$(sed '/-- >>> holo-border/,/-- <<< holo-border/d' "$HYPR/$f" | grep -nE '^[^-]*holo (toggle|start)' || true)
+  if [[ -n $dups ]]; then
+    echo "warning: $f also runs holo outside the holo-border block, so it would run twice; remove these:" >&2
+    echo "$dups" | sed 's/^/  /' >&2
+  fi
+done
+
 # --- turn it on ---
 if [[ $ACTIVATE == 1 ]]; then
   "$BIN/holo" on
