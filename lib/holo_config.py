@@ -23,6 +23,31 @@ DEFAULTS = {
     "adaptive": {"enabled": True, "source": "wallpaper", "high": 0.60, "low": 0.25, "max_boost": 0.4, "lightness_push": 0.15},
 }
 
+# The palettes Super+Alt+H cycles through (holo palette next), in order: name -> label.
+# "theme-*" are built from the current Omarchy theme's accent, so they follow theme changes.
+PALETTES = {
+    "sticker": "Holo sticker (pastel rainbow)",
+    "theme-analogous": "Theme analogous",
+    "theme-split": "Theme split-complementary",
+    "theme-tonal": "Theme tonal",
+    "gold": "Gold shimmer",
+    "silver": "Silver shimmer",
+    "chrome": "Dark chrome",
+}
+PALETTE_STATE = os.path.expanduser("~/.local/state/holo/palette")   # set by holo palette; overrides colors.palette
+
+def palette(cfg):
+    """The palette in use: HOLO_PALETTE (tests), else the one picked with holo palette, else colors.palette."""
+    if os.environ.get("HOLO_PALETTE"):
+        return os.environ["HOLO_PALETTE"]
+    try:
+        name = open(PALETTE_STATE).read().strip()
+        if name in PALETTES or name == "theme":
+            return name
+    except OSError:
+        pass
+    return cfg["colors"]["palette"]
+
 def load():
     cfg = copy.deepcopy(DEFAULTS)
     try:

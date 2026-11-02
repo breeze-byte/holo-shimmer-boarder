@@ -15,6 +15,15 @@ like the shimmer on a holo trading card.
   little more saturation (`colors.sticker_boost`) so they don't look washed out. `colors.palette =
   "theme"` uses your Omarchy theme's blue, cyan, magenta, yellow and bright blue instead, regenerated
   whenever you switch themes. Each window switch picks a random start.
+- **Six more palettes, one key.** Super+Alt+H (`holo palette`) cycles the sticker and six others. Three
+  follow your theme, built from its accent color by a color-harmony rule: *analogous* (the accent's
+  neighbors within ±45°), *split-complementary* (the accent and the two hues either side of its
+  opposite, joined through near-white) and *tonal* (one hue from light to deep, like Material You).
+  Three are metallic, built from the highlight-to-shade range that makes metal read as metal: *gold*,
+  *silver* and *dark chrome* (steel greys with sharp black reflections; its sweep and band flashes
+  are black too). The contrast step moves a metal's lightness as one block, so it keeps
+  that range, and dark chrome is never lightened. These all go
+  through the wallpaper contrast steps (dominant-color push, legibility, bright-wallpaper saturation).
 - **Neighbor fade.** Each band keeps fading into its top/right neighbor's color, one band every
   `shimmer.seconds_per_band` (2 s), costing about 5% of one core in Hyprland at 10 updates a second. `shimmer.continuous = false`
   fades once per window switch instead, then holds still and costs nothing until the next switch.
@@ -63,7 +72,8 @@ cd holo-border
 ./install.sh
 ```
 
-Options: `--key "SUPER + SHIFT + H"` (change the toggle keybind), `--no-keybind`, `--no-activate`.
+Options: `--key "SUPER + SHIFT + H"` (change the toggle keybind), `--palette-key "SUPER + ALT + H"` (the
+palette keybind), `--no-keybind`, `--no-activate`.
 
 The installer copies the scripts into `~/.config/hypr/holo/` and `~/.local/bin/holo`, adds a theme hook,
 and appends a small marked block to `looknfeel.lua`, `autostart.lua` and `bindings.lua` (each file is
@@ -77,6 +87,7 @@ holo on | off
 holo status
 holo restart     # after editing config.toml
 holo refresh     # regenerate colors (the theme hook does this for you)
+holo palette     # next palette, or Super+Alt+H; also: prev, list, or a name (e.g. holo palette gold)
 ```
 
 The on/off choice persists across reboots and theme changes.
@@ -88,7 +99,7 @@ Edit `~/.config/hypr/holo/config.toml`, then run `holo restart`. Common tweaks:
 | Setting | Effect |
 |---|---|
 | `colors.sticker_boost` / `sticker_boost_from` | sticker palette: extra saturation on a bright wallpaper, ramping up from the given brightness |
-| `colors.palette` | `sticker` (default: the holo sticker's pastel rainbow, the same on every theme) or `theme` (the Omarchy theme's colors) |
+| `colors.palette` | `sticker` (default: the holo sticker's pastel rainbow, the same on every theme), `theme` (the Omarchy theme's colors), or one of `theme-analogous`, `theme-split`, `theme-tonal`, `gold`, `silver`, `chrome`. A palette picked with `holo palette` overrides it (saved in `~/.local/state/holo/palette`) |
 | `border.size`, `border.angle`, `border.alpha` | width in px, opacity (used when `transparency.enabled` is off) |
 | `colors.chroma_max` / `chroma_min` | how vivid the colors can be |
 | `colors.lightness_min` / `lightness_max` | how pale or deep the colors can be |

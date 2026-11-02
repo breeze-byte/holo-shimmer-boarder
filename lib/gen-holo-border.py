@@ -87,15 +87,37 @@ def style(h):
     v = [x * 1.25 for x in v]                       # brighter
     return limit([max(0, min(255, round(273 + (x - 273) * CONTRAST))) for x in v])
 
+CACHE = os.path.join(os.path.dirname(colors_json), "wallpaper-cache.json")
+
+def magick(args):
+    """ImageMagick's output for the wallpaper, cached per wallpaper file and mtime (sampling a 4K
+    wallpaper takes seconds; holo palette regenerates with the same wallpaper)."""
+    try:
+        key = "%s|%s|%s" % (WALLPAPER, os.path.getmtime(WALLPAPER), " ".join(args))
+    except OSError:
+        key = None
+    try:
+        cache = json.load(open(CACHE))
+    except (OSError, ValueError):
+        cache = {}
+    if key and key in cache:
+        return cache[key]
+    text = subprocess.run(["magick", WALLPAPER, *args], capture_output=True, text=True, timeout=10).stdout
+    if key and text:
+        cache = {k: v for k, v in cache.items() if k.split("|")[:2] == key.split("|")[:2]}   # this wallpaper only
+        cache[key] = text
+        try:
+            os.makedirs(os.path.dirname(CACHE), exist_ok=True)
+            json.dump(cache, open(CACHE, "w"))
+        except OSError:
+            pass
+    return text
+
 def dominant_color():
     """Most common color of the wallpaper (falls back to the theme background)."""
     if AD["source"] == "wallpaper":
-        wall = WALLPAPER
         try:
-            text = subprocess.run(
-                ["magick", wall, "-resize", "96x96!", "-colors", "8", "-depth", "8",
-                 "-format", "%c", "histogram:info:-"],
-                capture_output=True, text=True, timeout=10).stdout
+            text = magick(["-resize", "96x96!", "-colors", "8", "-depth", "8", "-format", "%c", "histogram:info:-"])
             found = [(int(m.group(1)), [int(m.group(i)) for i in (2, 3, 4)])
                      for m in re.finditer(r"(\d+):\s*\(\s*(\d+),\s*(\d+),\s*(\d+)", text)]
             if found:
@@ -119,10 +141,8 @@ TR = cfg["transparency"]
 def wallpaper_pixels():
     """A 32x32 sample of the wallpaper as [r, g, b] rows; the theme background if unavailable."""
     if AD["source"] == "wallpaper":
-        wall = WALLPAPER
         try:
-            text = subprocess.run(["magick", wall, "-resize", "32x32!", "-depth", "8", "txt:-"],
-                                  capture_output=True, text=True, timeout=10).stdout
+            text = magick(["-resize", "32x32!", "-depth", "8", "txt:-"])
             px = [[int(x) for x in m.groups()] for m in re.finditer(r"\((\d+),(\d+),(\d+)", text)]
             if px:
                 return px
@@ -176,23 +196,29 @@ LG = cfg["legibility"]
 def luminance(v):
     return 0.2126 * to_lin(v[0]) + 0.7152 * to_lin(v[1]) + 0.0722 * to_lin(v[2])
 
+LIN = [to_lin(i / 4) for i in range(1021)]   # to_lin in quarter steps: contrast_score runs it ~1M times
+# Each wallpaper pixel's share of the blend and its own luminance, worked out once.
+WALL_BEHIND = [([y * (1 - ALPHA) * 4 for y in p], luminance(p)) for p in WALL]
+
 def contrast_score(colors):
     """Mean WCAG contrast ratio (1 = none, 21 = black on white) between the border colors,
     drawn at the current opacity, and the wallpaper pixels behind them."""
     total = 0.0
     for v in colors:
-        for p in WALL:
-            top = luminance([x * ALPHA + y * (1 - ALPHA) for x, y in zip(v, p)])
-            bot = luminance(p)
+        r, g, b = [x * ALPHA * 4 for x in v]
+        for (pr, pg, pb), bot in WALL_BEHIND:
+            top = 0.2126 * LIN[round(r + pr)] + 0.7152 * LIN[round(g + pg)] + 0.0722 * LIN[round(b + pb)]
             total += (max(top, bot) + 0.05) / (min(top, bot) + 0.05)
     return total / (len(colors) * len(WALL))
 
-def legible(colors):
+def legible(colors, rigid=False):
     """Move the colored stops' lightness until their mean contrast with the wallpaper reaches the
     target. Both directions are tried and the one that gets there with the smaller move wins
     (or, if neither does, the one that gets closest); a move that doesn't improve contrast is
     never taken. Lightness stays within [min_lightness, max_lightness], so the colors never sink
-    to near-black or wash out to white; on a bright wallpaper the outline makes up the rest."""
+    to near-black or wash out to white; on a bright wallpaper the outline makes up the rest.
+    rigid (the metals): every stop moves by the same amount and only the near-black/white limits
+    apply, so the highlight-to-shade range that makes metal read as metal survives the move."""
     if not LG["enabled"]:
         return colors
     target = LG["target_dark"] + (LG["target_bright"] - LG["target_dark"]) * BRIGHTNESS
@@ -202,6 +228,10 @@ def legible(colors):
     def shifted(shift):
         # darker stops at lo (or where the color already was, if below it); lighter stops at hi
         new = lambda L: max(L + shift, min(L, lo)) if shift < 0 else min(L + shift, max(L, hi))
+        if rigid:   # the whole range moves, no further than its lightest/darkest stop can go
+            Ls = [L for L, C, H in lch]
+            shift = max(0.15 - min(Ls), min(0.97 - max(Ls), shift))
+            new = lambda L: L + shift
         return [oklch_to_rgb(new(L), C, H) for L, C, H in lch]
 
     best, best_score, best_shift = colors, contrast_score(colors), 0.0
@@ -288,12 +318,75 @@ def hue_ring(colors):
 # (colors.sticker_boost; the theme colors' vividness.max_boost turns these pastels neon).
 STICKER = ["#f2aed0", "#f8c5a9", "#f1dca3", "#8fe8cb", "#88e0db",   # pink, peach, butter, mint, aqua
            "#98bde5", "#9faee3", "#ada2e8", "#c69ee5", "#e4a4e0"]   # sky, periwinkle, lavender, violet, orchid
-if cfg["colors"]["palette"] == "sticker":
+def path_ring(colors):
+    """The colors in the order given, as a closed loop (last back to first), sampled evenly in OKLab.
+    For palettes that only cover part of the color wheel: hue_ring would close the loop the long way
+    round, through the hues the palette leaves out."""
+    labs = [lab(v) for v in colors]
+    ring = []
+    for s in range(RING_SAMPLES):
+        pos = s / RING_SAMPLES * len(labs)
+        a, b, f = labs[int(pos)], labs[(int(pos) + 1) % len(labs)], pos % 1
+        L, A, B = [x + (y - x) * f for x, y in zip(a, b)]
+        ring.append(oklch_to_rgb(L, math.hypot(A, B), math.degrees(math.atan2(B, A)) % 360))
+    return ring
+
+# Fixed metallic palettes, each one closed loop (the last color flows back into the first). Metal reads
+# as metal from its light: a bright specular highlight running down through the base color into a deeper
+# shade and back, so these vary mostly in lightness, with little hue change. gold: champagne to deep
+# gold; silver: white to cool steel grey; chrome: black chrome / gunmetal, steel greys with sharp black
+# reflections, and its sweep and band flashes go black instead of white too (DARK_SHIMMER).
+FIXED = {
+    "gold": ["#fff6d6", "#f7d77a", "#e6b84a", "#c9952e", "#e2b041", "#ffe9a8", "#f2c75c", "#d4a23a"],
+    "silver": ["#ffffff", "#e3e8ef", "#c3cad4", "#9ea7b4", "#c3cad4", "#eef2f7", "#d2d8e0", "#b1b9c4"],
+    "chrome": ["#1b1e23", "#2c3138", "#5d6570", "#040507", "#7d8693", "#30353d", "#181a1f", "#4a525d", "#020304", "#3b414a"],
+}
+METALS = set(FIXED)
+DARK_SHIMMER = {"chrome"}
+
+def theme_palette(kind):
+    """Colors built from the theme's accent hue by a color-harmony rule, so they suit any theme:
+    analogous (neighbors within +-45 degrees), split-complementary (the accent and the two hues either
+    side of its opposite, joined through near-white), or tonal (one hue, light to deep, Material You style).
+    Sticker-like lightness and chroma; the contrast steps below adapt them to the wallpaper."""
+    acc = rgb_to_oklch(rgb(accent))
+    if acc[1] < 0.03:   # grey accent: use the theme's blue
+        acc = rgb_to_oklch(rgb(get("blue")))
+    H = acc[2]
+    Lc = 0.62 if light else 0.80   # center lightness
+    C = 0.12
+    if kind == "theme-analogous":
+        spec = [(-45, 0.04, C), (-22, 0.0, C), (0, -0.04, C * 1.1), (22, 0.0, C), (45, 0.04, C), (10, 0.08, C * 0.6)]
+    elif kind == "theme-split":
+        spec = [(0, 0.0, C * 1.1), (90, 0.10, C * 0.35), (150, 0.02, C), (180, 0.12, 0.02), (210, 0.02, C), (270, 0.10, C * 0.35)]
+    else:   # theme-tonal
+        spec = [(0, -0.10, C * 1.2), (6, -0.04, C * 1.1), (10, 0.04, C * 0.85), (14, 0.11, C * 0.5), (8, 0.15, 0.02), (-6, 0.04, C * 0.85), (-6, -0.04, C * 1.1)]
+    return [oklch_to_rgb(min(0.97, Lc + dL), c, (H + dH) % 360) for dH, dL, c in spec]
+
+def contrasted(colors, palette=None):
+    """The wallpaper-contrast steps for a palette: pushed away from the wallpaper's dominant color,
+    lightness moved until it reaches the contrast target, more chroma on bright wallpapers (from
+    sticker_boost_from up, like the sticker)."""
+    colors = [adapt(v) for v in colors]
+    # Black chrome's point is being dark: lightening it to reach the contrast target would turn it to
+    # silver. Its steel greys keep it faintly visible on a dark wallpaper; on a bright one it contrasts anyway.
+    if palette != "chrome":
+        colors = legible(colors, rigid=palette in METALS)
+    start = cfg["colors"]["sticker_boost_from"]
+    ramp = max(0.0, (BRIGHTNESS - start) / (1 - start)) / BRIGHTNESS if BRIGHTNESS > 0 else 0.0
+    return vivid_up(colors, cfg["colors"]["sticker_boost"] * ramp)
+
+PALETTE = holo_config.palette(cfg)
+if PALETTE == "sticker":
     # vivid_up scales the boost by BRIGHTNESS; rescale so it starts at sticker_boost_from instead of 0,
     # leaving the darker wallpapers the sticker colors already look right on untouched
     start = cfg["colors"]["sticker_boost_from"]
     ramp = max(0.0, (BRIGHTNESS - start) / (1 - start)) / BRIGHTNESS if BRIGHTNESS > 0 else 0.0
     ring = hue_ring(vivid_up([rgb(h) for h in STICKER], cfg["colors"]["sticker_boost"] * ramp))
+elif PALETTE in FIXED:
+    ring = path_ring(contrasted([rgb(h) for h in FIXED[PALETTE]], PALETTE))
+elif PALETTE.startswith("theme-"):
+    ring = path_ring(contrasted(theme_palette(PALETTE)))
 else:
     ring = hue_ring(list(final.values()))
 OL = cfg["outline"]
@@ -319,7 +412,7 @@ if cfg["bands"]["repeat"] > 1:
                      ("@BAR_GAP@", "%.4f" % cfg["sweep"]["line_gap"]), ("@BAR_GREY@", "%.4f" % cfg["sweep"]["line_grey"]), ("@GLOW@", "1" if cfg["sweep"]["style"] == "glow" else "0"),
                      ("@GLOW_TINT@", "%.4f" % cfg["sweep"]["glow_tint"]), ("@BAR_RIM@", "%.4f" % cfg["sweep"]["rim"]),
                      ("@BAR_RIM_WIDTH@", "%.4f" % cfg["sweep"]["rim_width"]), ("@SWEEP_DIST@", "%.4f" % cfg["sweep"]["distance"]),
-                     ("@SWEEP_OPACITY@", "%.4f" % SWEEP_OPACITY), ("@SWEEP_FADE_IN@", "%.4f" % min(0.9, max(0.001, SW["fade_in"]))),
+                     ("@SWEEP_OPACITY@", "%.4f" % SWEEP_OPACITY), ("@SWEEP_LIGHT@", "0.0" if PALETTE in DARK_SHIMMER else "1.0"), ("@SWEEP_FADE_IN@", "%.4f" % min(0.9, max(0.001, SW["fade_in"]))),
                      ("@SWEEP_BOUNCE@", "%.4f" % max(0.0, SW["bounce"])), ("@SWEEP_SPLIT@", "%.4f" % SWEEP_SPLIT)):
         template = template.replace(key, val)
     open(shader_out, "w").write(template)
@@ -332,7 +425,7 @@ with open(colors_json, "w") as f:
         "brightness": round(BRIGHTNESS, 3), "alpha": round(ALPHA, 3), "sweep_opacity": round(SWEEP_OPACITY, 3),
         "names": [n for v, n in stops],
         "ring": [hexa(v) for v in ring], "ring_complement": [hexa(complement(v)) for v in ring],
-        "highlight": hexa(white), "outline": "rgba(%02x%02x%02x%02x)" % tuple(outline),
+        "highlight": hexa([8, 9, 12] if PALETTE in DARK_SHIMMER else white), "palette": PALETTE, "outline": "rgba(%02x%02x%02x%02x)" % tuple(outline),
         "contrast_before": round(contrast_before, 2), "contrast_target": round(contrast_target, 2), "contrast": round(contrast_after, 2),
     }, f)
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Install holo-border for Omarchy (Hyprland Lua config).
-#   ./install.sh [--key "SUPER + SHIFT + H"] [--no-keybind] [--no-activate]
+#   ./install.sh [--key "SUPER + SHIFT + H"] [--palette-key "SUPER + ALT + H"] [--no-keybind] [--no-activate]
 # Safe to run more than once. Each file it edits is backed up once as
 # <file>.holo-install.bak, and the lines it adds sit between
 # ">>> holo-border" / "<<< holo-border" markers so uninstall.sh can remove them.
@@ -12,12 +12,14 @@ LIB="$HYPR/holo"
 BIN="$HOME/.local/bin"
 HOOKS="$HOME/.config/omarchy/hooks/theme-set.d"
 KEY="SUPER + SHIFT + H"
+PALETTE_KEY="SUPER + ALT + H"
 KEYBIND=1
 ACTIVATE=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --key) KEY="$2"; shift 2 ;;
+    --palette-key) PALETTE_KEY="$2"; shift 2 ;;
     --no-keybind) KEYBIND=0; shift ;;
     --no-activate) ACTIVATE=0; shift ;;
     -h|--help) sed -n 2,6p "$0"; exit 0 ;;
@@ -49,15 +51,15 @@ cp "$HERE/hooks/holo-border.sh" "$HOOKS/holo-border.sh"
 [[ -f $HYPR/holo-border.lua ]] || echo "-- holo border is off (run: holo on)" >"$HYPR/holo-border.lua"  # replaced by "holo on" below
 
 # --- wiring: append a marked block to a Hyprland config file, once ---
-add_block() {  # file, content
-  local file="$1" content="$2"
-  if grep -q ">>> holo-border" "$file"; then
+add_block() {  # file, content[, tag: a second block in the same file gets its own tag]
+  local file="$1" content="$2" tag="${3:+ $3}"
+  if grep -q -- "-- >>> holo-border$tag (" "$file"; then
     echo "already wired: $(basename "$file")"
     return
   fi
   [[ -f $file.holo-install.bak ]] || cp "$file" "$file.holo-install.bak"
-  printf '\n-- >>> holo-border (added by holo-border install.sh) >>>\n%s\n-- <<< holo-border <<<\n' "$content" >>"$file"
-  echo "wired: $(basename "$file")"
+  printf '\n-- >>> holo-border%s (added by holo-border install.sh) >>>\n%s\n-- <<< holo-border%s <<<\n' "$tag" "$content" "$tag" >>"$file"
+  echo "wired: $(basename "$file")$tag"
 }
 
 add_block "$HYPR/looknfeel.lua" 'pcall(require, "hypr.holo-border")'
@@ -66,6 +68,7 @@ add_block "$HYPR/autostart.lua" "hl.on(\"hyprland.start\", function()
 end)"
 if [[ $KEYBIND == 1 ]]; then
   add_block "$HYPR/bindings.lua" "o.bind(\"$KEY\", \"Toggle holo border\", \"$BIN/holo toggle\")"
+  add_block "$HYPR/bindings.lua" "o.bind(\"$PALETTE_KEY\", \"Next holo border colors\", \"$BIN/holo palette\")" palette
 fi
 
 # A holo line outside our blocks (e.g. wired up by hand before installing) runs twice: two toggle
@@ -83,7 +86,7 @@ done
 if [[ $ACTIVATE == 1 ]]; then
   "$BIN/holo" on
   if [[ $KEYBIND == 1 ]]; then
-    echo "holo border is on. Toggle it with: holo toggle  (or $KEY)"
+    echo "holo border is on. Toggle it with: holo toggle  (or $KEY); switch colors with $PALETTE_KEY"
   else
     echo "holo border is on. Toggle it with: holo toggle"
   fi

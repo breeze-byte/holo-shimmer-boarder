@@ -1,6 +1,7 @@
 #!/bin/bash
 # Toggle the holo window border (gradient shimmer + drift + mouse tilt + flash).
 #   holo on | off | toggle | status | restart | refresh | start
+#   holo palette [next | prev | list | <name>]   (next by default; Super+Alt+H)
 # State lives in ~/.local/state/holo; code and config in ~/.config/hypr/holo.
 
 DIR="$HOME/.config/hypr/holo"
@@ -79,11 +80,25 @@ case "${1:-toggle}" in
       reset_borders
     fi
     ;;
+  palette)   # switch the colors; the daemon picks up the new colors.json by itself
+    if [[ ${2:-next} == list ]]; then python3 "$DIR/palette.py" list; exit; fi
+    label=$(python3 "$DIR/palette.py" "${2:-next}") || exit 1
+    if enabled; then
+      before=$(cat "$SHADER_DIR/gradient.glsl" 2>/dev/null | md5sum)
+      python3 "$DIR/gen-holo-border.py"
+      # dark chrome's black sweep is baked into the shader: reload it only when it changed
+      [[ $(cat "$SHADER_DIR/gradient.glsl" 2>/dev/null | md5sum) == "$before" ]] || shaders
+      notify "Colors: $label"
+    else
+      notify "Colors: $label (holo is off)"
+    fi
+    echo "$label"
+    ;;
   start)     # at login: make sure the daemon runs if enabled
     enabled && { shaders; start_daemon; }
     ;;
   *)
-    echo "usage: holo on|off|toggle|status|restart|refresh|start" >&2
+    echo "usage: holo on|off|toggle|status|restart|refresh|start|palette [next|prev|list|<name>]" >&2
     exit 1
     ;;
 esac
